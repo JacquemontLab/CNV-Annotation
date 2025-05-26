@@ -1,0 +1,6 @@
+work/
+resources/
+*html
+.nextflow
+results/
+test-data/

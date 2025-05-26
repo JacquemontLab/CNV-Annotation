@@ -1,0 +1,170 @@
+#!/usr/bin/env nextflow 
+
+
+
+//Formatting inputs for VEP annotation.
+//This expects output from DigCNV, TO BE CHANGED 
+process formatVEPInput {
+    label 'quick'
+    label 'polars'
+    input:
+    path cnvs 
+
+    output:
+    path "uniq_cnvs.bed"
+
+    script:
+    """
+    prepare_cnvs_vep.py ${cnvs} "uniq_cnvs.bed"
+    """
+}
+
+
+
+//Annotating for Gene disruptions
+//process parameters in config. Requires apptainer image
+process VEP_38 {
+
+    label 'vep'
+    input:
+    path uniq_cnvs
+    path vep_cache
+    path gnomad_sv
+
+    output:
+    path "vep_out.tsv", emit : results
+    path "*html", emit : summary
+    path "*_warnings.txt", emit : warnings
+    path "vep_comments.txt", emit : comments
+    
+
+    script:
+    """
+    tabix -p vcf ${gnomad_sv}
+
+    vep -i ${uniq_cnvs} -o vep_out.tsv\
+    -cache\
+    --tab\
+    --dir_cache ${vep_cache}\
+    --offline\
+    --force_overwrite\
+    --numbers\
+    --fork ${task.cpus}\
+    --overlaps\
+    --canonical\
+    --max_sv_size 20000000\
+    --verbose\
+    --mane\
+    --assembly GRCh38 \
+    --custom file="./${gnomad_sv}",short_name=gnomad,format=VCF,reciprocal=1,overlap_cutoff=70,same_type=1,fields=AF_nfe%AF_afr%AF_amr%AF_fin%AF_sas%AF_eas%AF_asj \
+    --fields "Uploaded_variation,Location,Allele,Gene,Feature,Consequence,CANONICAL,MANE,EXON,INTRON,OverlapPC,gnomad_AF_nfe,gnomad_AF_afr,gnomad_AF_amr,gnomad_AF_fin,gnomad_AF_sas,gnomad_AF_eas,gnomad_AF_asj"
+
+
+    grep -E '^\\s*#' vep_out.tsv > vep_comments.txt
+    """
+}
+
+process VEP_37 {
+    label 'vep'
+    
+    input:
+    path uniq_cnvs
+    path vep_cache
+    path gnomad_sv
+
+    output:
+    path "vep_out.tsv", emit : results
+    path "*html", emit : summary
+    path "*_warnings.txt", emit : warnings
+    path "vep_comments.txt", emit : comments
+    
+
+    script:
+    """
+    tabix -p vcf ${gnomad_sv}
+
+    vep -i ${uniq_cnvs} -o vep_out.tsv\
+    -cache\
+    --tab\
+    --dir_cache ${vep_cache}\
+    --offline\
+    --force_overwrite\
+    --numbers\
+    --fork ${task.cpus}\
+    --overlaps\
+    --canonical\
+    --max_sv_size 20000000\
+    --verbose\
+    --assembly GRCh37 \
+    --custom file="./${gnomad_sv}",short_name=gnomad,format=VCF,reciprocal=1,overlap_cutoff=70,same_type=1,fields=AFR_AF%AMR_AF%EAS_AF%EUR_AF \
+    --fields "Uploaded_variation,Location,Allele,Gene,Feature,Consequence,CANONICAL,MANE,EXON,INTRON,OverlapPC,gnomad_AFR_AF,gnomad_AMR_AF,gnomad_EAS_AF,gnomad_EUR_AF"
+
+
+    grep -E '^\\s*#' vep_out.tsv > vep_comments.txt
+    """
+}
+//Build a parquet file to give 
+process buildParquet {
+    label 'quick'
+ 
+    input:
+    path vep_out
+
+    output:
+    path "gene_db.parquet"
+
+    script:
+    """
+    duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
+               TO 'gene_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
+    """
+}
+
+
+process buildDB {
+    label 'long'
+    label 'polars'
+    input:
+    path gene_parquet
+
+    output:
+    path "geneDB.parquet"
+
+    script:
+    """
+    gene_db.py ${gene_parquet} geneDB.parquet
+    """
+
+}
+
+
+workflow VEP_ANNOTATE {
+    take:
+    cnv_ch
+    genome_version
+    vep_cache
+    gnomad
+
+
+    main:
+
+    formatVEPInput(cnv_ch)
+
+    if(genome_version == "GRCh38"){
+        VEP_38(formatVEPInput.out, vep_cache, file(gnomad))
+        vep_ch = VEP_38.out.results
+    } else if(genome_version == "GRCh37") {
+        VEP_37(formatVEPInput.out, vep_cache, file(gnomad))
+        vep_ch = VEP_37.out.results
+    }
+  
+
+    buildParquet(vep_ch)
+    
+    emit:
+    db = buildDB(buildParquet.out)
+    //vep_comments = vep_ch.out.comments
+    //vep_summary  = vep_ch.out.summary
+
+    
+}
