@@ -2,10 +2,8 @@
 
 nextflow.preview.output = true
 
-
+//test params
 params.cnvs           = "${projectDir}/test-data/CNVs.tsv"
-params.qc_scores      = "${projectDir}/test-data/pennCNV_QC.tsv"
-params.plink_file     = "${projectDir}/test-data/from_plink_extracted_data.tsv"
 params.genome_version = "GRCh37"
 params.cohort_tag     = "ALSPAC"
 
@@ -14,7 +12,7 @@ params.cohort_tag     = "ALSPAC"
 include { VEP_ANNOTATE } from './modules/vep_annotate'
 
 
-process buildSampleDB {
+/* process buildSampleDB {
     label 'quick'
 
     input:
@@ -40,11 +38,11 @@ process buildSampleDB {
     """
     touch sampleDB.parquet
     """
-}
+} */
 
 process buildCnvDB {
+    
     label 'quick'
-    label 'polars'
 
     input:
     path cnvs
@@ -58,7 +56,7 @@ process buildCnvDB {
     """
     add_regions_overlap.sh ${cnvs} ${regions_file} ${genome_version} "CNVs_with_genomic_regions_overlap.tsv"
 
-    cnv_db_builder.py CNVs_with_genomic_regions_overlap.tsv cnvDB.parquet
+    cnv_db_builder_lite.py CNVs_with_genomic_regions_overlap.tsv cnvDB.parquet
     """
 
     stub:
@@ -79,12 +77,16 @@ process buildSummary {
     """
        cat <<EOF > launch_report.txt
        CNV_DB_Builder ${cohort_tag} run summary:
+       run name: ${workflow.runName}
        version: ${workflow.manifest.version}
        configs: ${workflow.configFiles}
        workDir: ${workflow.workDir}
        launch_user: ${workflow.userName}
        start_time: ${workflow.start}
        duration: ${workflow.duration}
+
+       Command:
+       ${workflow.commandLine}
 
     
     """
@@ -101,30 +103,17 @@ workflow {
     
         cohort_ch = params.cohort_tag
         cnvs_ch   = Channel.fromPath(file(params.cnvs))
-        qc_ch     = Channel.fromPath(file(params.qc_scores))
-        plink_ch  = file(params.plink_file)
-
-
-
-        if(params.genome_version == "GRCh37"){
-            gnomad_file = "gnomad.v2.1.sv.sites.vcf.bgz"
-        } else {
-            gnomad_file = "gnomad.v4.1.sv.sites.vcf.bgz"
-        }
-
-        resource_dir = projectDir.resolve("resources")
-        gnomad = file(resource_dir / params.genome_version / gnomad_file)
 
 
 
         VEP_ANNOTATE (  cnvs_ch, 
                         params.genome_version, 
                         params.vep_cache, 
-                        gnomad               )
+                        params.gnomad_AF )
 
 
-        buildSampleDB ( plink_ch,
-                        qc_ch )
+       /*  buildSampleDB ( plink_ch,
+                        qc_ch ) */
         
         buildCnvDB    ( cnvs_ch,
                         params.genome_version,
@@ -134,7 +123,7 @@ workflow {
 
     publish:
         cnv_gene_db  = VEP_ANNOTATE.out
-        sample_db    = buildSampleDB.out
+        //sample_db    = buildSampleDB.out
         cnv_db       = buildCnvDB.out
         summary      = buildSummary.out
 
@@ -143,15 +132,18 @@ workflow {
 
 output {
     cnv_gene_db {
+        mode 'copy'
         path "${params.cohort_tag}/"
     }
-    sample_db {
+/*     sample_db {
         path "${params.cohort_tag}/"
-    }
+    } */
     cnv_db {
+        mode 'copy'
         path "${params.cohort_tag}/"
     }
     summary {
+        mode 'copy'
         path "${params.cohort_tag}/"
     }
     

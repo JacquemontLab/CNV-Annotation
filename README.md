@@ -1,7 +1,23 @@
-# CNV-DB-Builder
+# CNV-DB-Builder-Lite
 
-Nextflow pipeline for building a database from microarray data called from merged PennCNV and QuantiSNP CNV calls. The intent of the pipeline is to produce three .parquet files that can be referenced to each other via common IDs. The relationship between the keys are as follows:
+Nextflow pipeline for building a database from a single CNV file. This is a simplified implementation of the CNV-DB-Builder pipeline with only the VEP annotation. The input that is expected is a bed-like format with the  following columns:
 
+```mermaid 
+erDiagram
+    direction TB
+    CNV-Input{
+        string SampleID
+        string Chr
+        int Start
+        int End 
+        string TYPE
+    }
+```
+
+Where TYPE is a string that is either "DEL" or "DUP". Chromosome names should all start with 'Chr', excluding X and Y. Header names are optional while positioning is not.
+
+
+The pipeline currently produces two parquet files with the following key definitions:
 
 ```mermaid
 erDiagram
@@ -14,11 +30,6 @@ erDiagram
     GENE_CNV_DB {
         string CNV_ID FK
 		string Gene PK
-    }
-	CNV_DB o{..|| SAMPLE_DB : has
-    SAMPLE_DB {
-        string SampleID PK
-		string FID 
     }
 ```
 ### GENE_CNV
@@ -77,9 +88,9 @@ By default, VEP reports CNVs that overlap with an exon in this format
 
     "<first_exon> - <last_exon> / <total_exon_count>"
 
-eg:
 
-Where, for example, "2-3/4" is a CNV that overlaps from the second to the third exon in gene of 4 exons. In order to convert this to a percentage format we apply the following function:
+
+Where "2-3/4" is a CNV that overlaps from the second to the third exon in gene of 4 exons. In order to convert this to a percentage format we apply the following function:
 
     Exon_Overlap = (<last_exon> - <first_exon> + 1) / <total_exon_count>
 
@@ -87,8 +98,8 @@ Where, for example, "2-3/4" is a CNV that overlaps from the second to the third 
 
 This is a default field supplied by VEP. It is simply the base pair overlap the CNV shares with a transcript.
 
-### CNV
- The CNV table contains common quality metrics for every CNV found across individuals from both PennCNV and QuantiSNP. It also contains overlap percentages with problem regions such as Segmental duplications and centromeres. 
+### CNV_DB
+ The CNV table contains a description of the CNV's location plus all additional columns supplied in the input file.  It also contains overlap percentages with problem regions such as Segmental duplications and centromeres. The minimal table is the following:
 
  ```mermaid
 erDiagram
@@ -99,42 +110,11 @@ CNV_DB {
     int Start
     int End
     int Length
-    int[]  Copy_Number
-    float Confidence_max
-    int Num_Probes
-    int Num_Merged_CNVs
-    float QuantiSNP_Overlap
-    float PennCNV_Overlap
     float Two_Algorithm_Overlap
     float telomere_Overlap
     float centromere_Overlap
     float segmentaldup_Overlap
     string CN_Type
-
-
-}
-```
-
- ### SAMPLE_DB
- Individual level information, containing family relations from plink and the quality of the array. 
-
-```mermaid
-erDiagram
-SAMPLE_DB{
-    string SampleID
-    string Sex_from_checksex
-    double Call_Rate
-    string FID
-    int PID
-    int MID
-    double LRR_mean
-    double LRR_median
-    double BAF_mean 
-    double BAF_median
-    double BAF_SD
-    double BAF_DRIFT
-    double WF
-    double GCWF
 }
 ```
 

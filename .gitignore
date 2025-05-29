@@ -1,6 +1,8 @@
 work/
-resources/
+./resources/
 *html
 .nextflow
 results/
 test-data/
+.nextflow.log*
+*.log

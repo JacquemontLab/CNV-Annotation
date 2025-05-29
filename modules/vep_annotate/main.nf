@@ -6,7 +6,7 @@
 //This expects output from DigCNV, TO BE CHANGED 
 process formatVEPInput {
     label 'quick'
-    label 'polars'
+    
     input:
     path cnvs 
 
@@ -30,6 +30,7 @@ process VEP_38 {
     path uniq_cnvs
     path vep_cache
     path gnomad_sv
+
 
     output:
     path "vep_out.tsv", emit : results
@@ -64,6 +65,7 @@ process VEP_38 {
     """
 }
 
+
 process VEP_37 {
     label 'vep'
     
@@ -71,6 +73,7 @@ process VEP_37 {
     path uniq_cnvs
     path vep_cache
     path gnomad_sv
+
 
     output:
     path "vep_out.tsv", emit : results
@@ -103,39 +106,44 @@ process VEP_37 {
     grep -E '^\\s*#' vep_out.tsv > vep_comments.txt
     """
 }
-//Build a parquet file to give 
-process buildParquet {
-    label 'quick'
+// //Build a parquet file to give 
+// process buildParquet {
+//     label 'quick'
  
+//     input:
+//     path vep_out
+
+//     output:
+//     path "gene_db.parquet"
+
+//     script:
+//     """
+//     duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
+//                TO 'gene_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
+//     """
+// }
+
+
+process buildGeneDB {
+    label 'quick'
+    
     input:
     path vep_out
-
-    output:
-    path "gene_db.parquet"
-
-    script:
-    """
-    duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
-               TO 'gene_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
-    """
-}
-
-
-process buildDB {
-    label 'long'
-    label 'polars'
-    input:
-    path gene_parquet
 
     output:
     path "geneDB.parquet"
 
     script:
     """
-    gene_db.py ${gene_parquet} geneDB.parquet
+    duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
+               TO 'tmp_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
+
+    gene_db.py tmp_db.parquet geneDB.parquet
     """
 
 }
+
+
 
 
 workflow VEP_ANNOTATE {
@@ -143,7 +151,8 @@ workflow VEP_ANNOTATE {
     cnv_ch
     genome_version
     vep_cache
-    gnomad
+    gnomad_sv
+
 
 
     main:
@@ -151,18 +160,15 @@ workflow VEP_ANNOTATE {
     formatVEPInput(cnv_ch)
 
     if(genome_version == "GRCh38"){
-        VEP_38(formatVEPInput.out, vep_cache, file(gnomad))
+        VEP_38(formatVEPInput.out, vep_cache, file(gnomad_sv) )
         vep_ch = VEP_38.out.results
     } else if(genome_version == "GRCh37") {
-        VEP_37(formatVEPInput.out, vep_cache, file(gnomad))
+        VEP_37(formatVEPInput.out, vep_cache, file(gnomad_sv))
         vep_ch = VEP_37.out.results
     }
   
-
-    buildParquet(vep_ch)
-    
     emit:
-    db = buildDB(buildParquet.out)
+    db = buildGeneDB(vep_ch)
     //vep_comments = vep_ch.out.comments
     //vep_summary  = vep_ch.out.summary
 
