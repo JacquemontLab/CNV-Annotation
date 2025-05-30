@@ -50,13 +50,40 @@ process buildCnvDB {
     path regions_file 
 
     output:
-    path "cnvDB.parquet"
+    path "inputDB.parquet"
 
     script:
     """
     add_regions_overlap.sh ${cnvs} ${regions_file} ${genome_version} "CNVs_with_genomic_regions_overlap.tsv"
 
-    cnv_db_builder_lite.py CNVs_with_genomic_regions_overlap.tsv cnvDB.parquet
+    cnv_db_builder_lite.py CNVs_with_genomic_regions_overlap.tsv inputDB.parquet
+    """
+
+    stub:
+    """
+    touch cnvDB.parquet
+    """
+}
+
+process joinTables {
+    label 'quick' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
+
+    input:
+    path vep_db
+    path input_db
+
+    output:
+    path "cnvDB.parquet"
+
+    script:
+    """
+    duckdb -c "
+        COPY(
+            SELECT * FROM ${input_db}
+            FULL JOIN (SELECT * EXCLUDE (Allele, Location) FROM ${vep_db})
+            USING (CNV_ID)
+        ) TO "cnvDB.parquet" (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 5_000_00);
+    "
     """
 
     stub:
@@ -119,25 +146,20 @@ workflow {
                         params.genome_version,
                         params.genome_regions,
                                                 )
+
+        joinTables    ( VEP_ANNOTATE.out,
+                        buildCnvDB.out          )
+
         buildSummary  (params.cohort_tag)
 
     publish:
-        cnv_gene_db  = VEP_ANNOTATE.out
-        //sample_db    = buildSampleDB.out
-        cnv_db       = buildCnvDB.out
+        cnv_db       = joinTables.out
         summary      = buildSummary.out
 
 
 }
 
 output {
-    cnv_gene_db {
-        mode 'copy'
-        path "${params.cohort_tag}/"
-    }
-/*     sample_db {
-        path "${params.cohort_tag}/"
-    } */
     cnv_db {
         mode 'copy'
         path "${params.cohort_tag}/"

@@ -11,7 +11,7 @@ output = sys.argv[2]
 #scan csv and cast to schema
 df  = pl.scan_csv(input,
                   separator="\t",
-                  infer_schema_length=10000)
+                  infer_schema_length=50000)
 
 
 #Creating CNV_ID Column

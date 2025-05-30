@@ -16,8 +16,46 @@ erDiagram
 
 Where TYPE is a string that is either "DEL" or "DUP". Chromosome names should all start with 'Chr', excluding X and Y. Header names are optional while positioning is not.
 
+### Dependencies 
+ - python 3.13+
+ - polars 
+ - duckdb 
+ - vep 113
+ - Nextflow 25.04.2 
 
-The pipeline currently produces two parquet files with the following key definitions:
+
+### Output
+ The CNV table contains a description of the CNV's location, sample of origin gene and problem area overlaps such as segdups and par regions.
+
+ ```mermaid
+erDiagram
+CNV_DB {
+    string CNV_ID
+    string SampleID
+    string Chr
+    string TYPE
+    int Start
+    int End
+    float Two_Algorithm_Overlap
+    float telomere_Overlap
+    float centromere_Overlap
+    float segmentaldup_Overlap
+    float par_Overlap
+    string Gene PK
+    string Feature
+    string Consequence
+    string CANONICAL
+    string MANE
+    string EXON
+    string INTRON
+    float Exon_Overlap
+    float Transcript_bp_Overlap
+    float Gnomad_Max_AF
+
+}
+```
+
+The pipeline currently produces two parquet files and merges them with the following relationship to produce a final output:
 
 ```mermaid
 erDiagram
@@ -26,33 +64,16 @@ erDiagram
         string CNV_ID PK
 		string SampleID FK
     }
-	CNV_DB ||..o{ GENE_CNV_DB : has
+	CNV_DB ||..o{ GENE_CNV_DB : FULL_JOIN
     GENE_CNV_DB {
         string CNV_ID FK
 		string Gene PK
     }
 ```
-### GENE_CNV
-The pipeline utilizes VEP for annotating CNVs with gene level information from Ensembl in either Hg19 or Hg38. Here is the whole table column specification.
 
-```mermaid
-erDiagram
-GENE_CNV_DB {
-        string CNV_ID FK
-		string Gene PK
-        string Location
-        string CN_Type
-        string Feature
-        string Consequence
-        string CANONICAL
-        string MANE
-        string EXON
-        string INTRON
-        float Exon_Overlap
-        float Transcript_bp_Overlap
-        float Gnomad_Max_AF
-}
-```
+
+
+### Notes
 #### MANE 
 MANE flag for transcript. Only supported in Hg38.
 #### Gnomad_Max_AF 
@@ -98,24 +119,6 @@ Where "2-3/4" is a CNV that overlaps from the second to the third exon in gene o
 
 This is a default field supplied by VEP. It is simply the base pair overlap the CNV shares with a transcript.
 
-### CNV_DB
- The CNV table contains a description of the CNV's location plus all additional columns supplied in the input file.  It also contains overlap percentages with problem regions such as Segmental duplications and centromeres. The minimal table is the following:
 
- ```mermaid
-erDiagram
-CNV_DB {
-    string CNV_ID
-    string SampleID
-    string Chr
-    int Start
-    int End
-    int Length
-    float Two_Algorithm_Overlap
-    float telomere_Overlap
-    float centromere_Overlap
-    float segmentaldup_Overlap
-    string CN_Type
-}
-```
 
 
