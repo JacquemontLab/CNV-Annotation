@@ -39,7 +39,6 @@ Minimally the output table is as follows:
 |float      | telomere_Overlap   | Percentage base-pair overlap between CNV and telomeric regions. | 
 |float      | centromere_Overlap | Percentage base-pair overlap between CNV and centromeric regions. |
 |float      | segmentaldup_Overlap | Percentage base-pair overlap between CNV and segmental duplication regions. |
-
 |string     | Gene               | Ensembl ID for the overlapping gene with the CNV. |
 |string     | Feature             | Ensembl ID for the __transcript__ overlapping with the CNV |
 |string[]   | Consequence         | String list of Gene disruptions annotated by VEP.   | 
