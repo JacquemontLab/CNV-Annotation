@@ -24,6 +24,5 @@ NXF_VER=25.04.2
 --genome_version "GRCh38" \
 --cohort_tag "SPARK_XHMM" \
 -c conf/ccdb.config \
--with-report \
--resume
+-with-report
 

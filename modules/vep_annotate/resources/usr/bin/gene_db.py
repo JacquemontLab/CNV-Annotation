@@ -43,6 +43,8 @@ def main():
             df.pipe(make_transcript_overlap)
             .pipe(make_max_gnomad) #expects NULL values
             .pipe(make_CNV_ID)
+            .pipe(make_canon_bool)
+            .pipe(make_consequence_list)
           )
 
     #Outfile streaming to second positional argument
@@ -138,8 +140,7 @@ def make_null(df):
         df (pl.DataFrame): Input Polars DataFrame.
 
     Returns:
-        pl.DataFrame: A copy of the DataFrame with '-' values replaced by nulls,
-                      excluding the 'CANONICAL' column.
+        pl.DataFrame: A copy of the DataFrame with '-' values replaced by nulls.
     """
     df = df \
         .with_columns([
@@ -147,7 +148,7 @@ def make_null(df):
         .then(None)
         .otherwise(pl.col(col))
         .alias(col)
-        for col in [c for c in df.collect_schema().names() if c != "CANONICAL"] #keeping VEP annotation for canonical
+        for col in [c for c in df.collect_schema().names()] 
     ])
     return df
 
@@ -179,6 +180,12 @@ def make_canon_bool(df):
             pl.lit(True)
         )
         .otherwise(False).alias("CANONICAL")
+    )
+    return df
+
+def make_consequence_list(df):
+    df = df.with_columns(
+        pl.col("Consequence").str.split(",").alias("Consequence")
     )
     return df
 

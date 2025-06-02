@@ -14,7 +14,7 @@ erDiagram
     }
 ```
 
-Where TYPE is a string that is either "DEL" or "DUP". Chromosome names should all start with 'Chr', excluding X and Y. Header names are optional while positioning is not.
+Where TYPE is a string that is either "DEL" or "DUP". Header names are optional while positioning is not.
 
 ### Dependencies 
  - python 3.13+
@@ -25,52 +25,39 @@ Where TYPE is a string that is either "DEL" or "DUP". Chromosome names should al
 
 
 ### Output
- The CNV table contains a description of the CNV's location, sample of origin gene and problem area overlaps such as segdups and par regions.
+Minimally the output table is as follows:
 
- ```mermaid
-erDiagram
-CNV_DB {
-    string CNV_ID
-    string SampleID
-    string Chr
-    string TYPE
-    int Start
-    int End
-    float Two_Algorithm_Overlap
-    float telomere_Overlap
-    float centromere_Overlap
-    float segmentaldup_Overlap
-    float par_Overlap
-    string Gene PK
-    string Feature
-    string Consequence
-    string CANONICAL
-    string MANE
-    string EXON
-    string INTRON
-    float Exon_Overlap
-    float Transcript_bp_Overlap
-    float Gnomad_Max_AF
+| __dTYPE__ | __Column__ | __Description__                                    | 
+|:--------- | -----------| -------------------------------------------------- |
+|string     | CNV_ID             | ID of the CNV in the format of 'CHR_Start_End_TYPE'|
+|string     | SampleID           | Cohort Specific ID for individual samples          |
+|string     | Chr                | Chromosome Id. Optionally prefixed with 'Chr'      |
+|string     | TYPE               | CNV type. Either __'DEL'__ or __'DUP'__                    |
+|int        | Start              | Chromosome start position. Ideally coordinates should match ensembl in that they are one-based and inclusive.|
+|int        | End                | Chromosome End position.                           |
+|float      | telomere_Overlap   | Percentage base-pair overlap between CNV and telomeric regions. | 
+|float      | centromere_Overlap | Percentage base-pair overlap between CNV and centromeric regions. |
+|float      | segmentaldup_Overlap | Percentage base-pair overlap between CNV and segmental duplication regions. |
+|...| *__INPUT COLUMNS__* | 
+|string     | Gene               | Ensembl ID for the overlapping gene with the CNV. |
+|string     | Feature             | Ensembl ID for the __transcript__ overlapping with the CNV |
+|string[]   | Consequence         | String list of Gene disruptions annotated by VEP.   | 
+|boolean    | CANONICAL           | Transcript level canonical flag.                 |
+|string     | MANE                | Matched Annotation from NCBI and EMBL-EBI (MANE) flag. [https://www.ncbi.nlm.nih.gov/refseq/MANE/](https://www.ncbi.nlm.nih.gov/refseq/MANE/). __Only available in HG38__ |
+|string     | EXON                | String representation of the exons impacted by the CNV in the format of "<start_exon>-<end_exon>/<exon_count>" | 
+|string     | INTRON              | String representation of the introns impacted by the CNV formatted as "<start_intron>-<end_intron>/<intron_count>" |
+|float      | Exon_Overlap        | Percentage transform of the EXON column. See notes |
+|float      | Transcript_bp_Overlap | Base-pair percentage overlap of the transcript with the CNV. |
+|float      | Gnomad_Max_AF         | Maximum allele frequency of matching structural variant across populations. See notes. |  
 
-}
+All other columns from the input are passed with their types estimated by python polars. 
+
+
+The pipeline currently produces two parquet files, one being the formatted input file and the other the formatted VEP output,  and merges them based on CNV_ID alone. The structure between the ID columns are multiplcative and hierchical. SampleIDs, for instance will be duplicated in the following manner: 
+
 ```
-
-The pipeline currently produces two parquet files and merges them with the following relationship to produce a final output:
-
-```mermaid
-erDiagram
-    direction TB
-    CNV_DB {
-        string CNV_ID PK
-		string SampleID FK
-    }
-	CNV_DB ||..o{ GENE_CNV_DB : FULL_JOIN
-    GENE_CNV_DB {
-        string CNV_ID FK
-		string Gene PK
-    }
-```
-
+# of dup SampleIDs = 1 * #CNV * #GENE * #Transcript
+```   
 
 
 ### Notes
