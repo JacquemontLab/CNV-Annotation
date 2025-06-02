@@ -32,13 +32,14 @@ Minimally the output table is as follows:
 |string     | CNV_ID             | ID of the CNV in the format of 'CHR_Start_End_TYPE'|
 |string     | SampleID           | Cohort Specific ID for individual samples          |
 |string     | Chr                | Chromosome Id. Optionally prefixed with 'Chr'      |
-|string     | TYPE               | CNV type. Either __'DEL'__ or __'DUP'__                    |
 |int        | Start              | Chromosome start position. Ideally coordinates should match ensembl in that they are one-based and inclusive.|
-|int        | End                | Chromosome End position.                           |
+|int        | End                | Chromosome End position.
+|string     | TYPE               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
+|...| *__INPUT COLUMNS__* |                           |
 |float      | telomere_Overlap   | Percentage base-pair overlap between CNV and telomeric regions. | 
 |float      | centromere_Overlap | Percentage base-pair overlap between CNV and centromeric regions. |
 |float      | segmentaldup_Overlap | Percentage base-pair overlap between CNV and segmental duplication regions. |
-|...| *__INPUT COLUMNS__* | 
+
 |string     | Gene               | Ensembl ID for the overlapping gene with the CNV. |
 |string     | Feature             | Ensembl ID for the __transcript__ overlapping with the CNV |
 |string[]   | Consequence         | String list of Gene disruptions annotated by VEP.   | 
