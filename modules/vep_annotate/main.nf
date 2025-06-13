@@ -6,6 +6,7 @@
 //This expects output from DigCNV, TO BE CHANGED 
 process formatVEPInput {
     label 'quick'
+    label 'polars'
     
     input:
     path cnvs 
@@ -126,7 +127,7 @@ process VEP_37 {
 
 process buildGeneDB {
     label 'quick'
-    
+    label 'polars'
     input:
     path vep_out
 
