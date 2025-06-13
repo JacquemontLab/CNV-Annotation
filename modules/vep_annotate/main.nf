@@ -6,6 +6,7 @@
 //This expects output from DigCNV, TO BE CHANGED 
 process formatVEPInput {
     label 'quick'
+    label 'polars'
     
     input:
     path cnvs 
@@ -106,39 +107,35 @@ process VEP_37 {
     grep -E '^\\s*#' vep_out.tsv > vep_comments.txt
     """
 }
-// //Build a parquet file to give 
-// process buildParquet {
-//     label 'quick'
- 
-//     input:
-//     path vep_out
-
-//     output:
-//     path "gene_db.parquet"
-
-//     script:
-//     """
-//     duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
-//                TO 'gene_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
-//     """
-// }
-
 
 process buildGeneDB {
     label 'quick'
+    label 'polars'
     
     input:
     path vep_out
+    path constraints
 
     output:
     path "geneDB.parquet"
 
     script:
     """
+    #First transform large VEP output to parquet
     duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
                TO 'tmp_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
 
-    gene_db.py tmp_db.parquet geneDB.parquet
+    #Formatting output
+    gene_db.py tmp_db.parquet tmp_formatted.parquet
+
+    #Adding constraints file via right join on geneDB using gene_IDs
+    duckdb -c "COPY ( 
+                        SELECT gene_id, CAST(NULLIF("lof.oe_ci.upper", 'NA') AS DOUBLE) AS LOEUF
+                        FROM read_csv(${constraints}. delim = '\\t') AS gnomad
+                        RIGHT JOIN (SELECT * FROM read_parquet('tmp_formatted.parquet')) AS geneDB
+                        ON geneDB.Gene = gnomad.gene_id
+        ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
+    "
     """
 
 }
@@ -152,7 +149,7 @@ workflow VEP_ANNOTATE {
     genome_version
     vep_cache
     gnomad_sv
-
+    gnomad_constraints
 
 
     main:
@@ -166,9 +163,9 @@ workflow VEP_ANNOTATE {
         VEP_37(formatVEPInput.out, vep_cache, file(gnomad_sv))
         vep_ch = VEP_37.out.results
     }
-  
+    db = buildGeneDB(vep_ch, gnomad_constraints)
     emit:
-    db = buildGeneDB(vep_ch)
+    db
     //vep_comments = vep_ch.out.comments
     //vep_summary  = vep_ch.out.summary
 

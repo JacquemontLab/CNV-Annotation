@@ -1,18 +1,19 @@
 #!/usr/bin/env nextflow
 
 nextflow.preview.output = true
+nextflow.enable.moduleBinaries = true
 
 //test params
 params.cnvs           = "${projectDir}/test-data/CNVs.tsv"
 params.genome_version = "GRCh37"
 params.cohort_tag     = "ALSPAC"
 
-//TODO replace CNVdb builder process with a polars script for adding cnv_id and TYPE flag 
+
 
 include { VEP_ANNOTATE } from './modules/vep_annotate'
 
 
-/* process buildSampleDB {
+process buildSampleDB {
     label 'quick'
 
     input:
@@ -38,11 +39,12 @@ include { VEP_ANNOTATE } from './modules/vep_annotate'
     """
     touch sampleDB.parquet
     """
-} */
+}
 
 process buildCnvDB {
     
     label 'quick'
+    label 'polars'
 
     input:
     path cnvs
@@ -136,7 +138,8 @@ workflow {
         VEP_ANNOTATE (  cnvs_ch, 
                         params.genome_version, 
                         params.vep_cache, 
-                        params.gnomad_AF )
+                        params.gnomad_AF,
+                        params.gnomad_constraints )
 
 
        /*  buildSampleDB ( plink_ch,
