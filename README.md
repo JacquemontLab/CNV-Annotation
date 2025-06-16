@@ -48,9 +48,8 @@ Minimally the output table is as follows:
 |float      | Transcript_bp_Overlap | Base-pair percentage overlap of the transcript with the CNV. |
 |float      | Gnomad_Max_AF         | Maximum allele frequency of matching structural variant across populations. See notes. |  
 |float 	    | LOEUF		    | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained)|	
+
 All other columns from the input are passed with their types estimated by python polars. 
-
-
 The pipeline currently produces two parquet files, one being the formatted input file and the other the formatted VEP output,  and merges them based on CNV_ID alone. The structure between the ID columns are multiplcative and hierchical. SampleIDs, for instance will be duplicated in the following manner: 
 
 ```
