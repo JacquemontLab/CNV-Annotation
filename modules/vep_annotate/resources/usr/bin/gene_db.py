@@ -11,7 +11,7 @@ Created       : 2025-04-30
 Last Modified : 2025-04-30
 Version       : 1.0.0
 Python Version: 3.x
-Description   : Reformats VEP CNV annotation for final CNV-GENE database.
+Description   : Reformats VEP CNV annotation for a CNV-GENE database.
 
 Usage:
     python3 gene_db.py <in_file.parquet> <out_file.parquet>
@@ -23,7 +23,7 @@ Dependencies:
 """
 
 __author__ = "Benjamin Clark"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 
 
@@ -48,7 +48,8 @@ def main():
           )
 
     #Outfile streaming to second positional argument
-    out.sink_parquet(sys.argv[2], compression="lz4")
+    out.rename({"Feature": "Transcript_ID","Gene": "Gene_ID"}).sink_parquet(sys.argv[2], compression="lz4")
+    
 
 
 

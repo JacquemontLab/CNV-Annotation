@@ -1,6 +1,7 @@
 #!/bin/bash
+# -*- coding: utf-8 -*-
 
-###############################################################################
+# ##############################################################################
 # Script Name: add_regions_overlap.sh
 # Description: This script prepares region-specific BED files (telomere, centromere,
 #              and segmental duplications) from a genome regions file and computes
@@ -19,7 +20,7 @@
 #
 # Author: Florian Bénitière
 # Date: April 2025
-###############################################################################
+# ##############################################################################
 
 set -euo pipefail
 
@@ -67,7 +68,7 @@ NR > 1 && ($4 == "PAR1" || $4 == "PAR2" || $4 == "XTR") && $5 == genome {
 
 
 # Format string to pass to overlap computation script
-regions_to_overlap=segmentaldup:$segmentaldup_db,par:$par_db"
+regions_to_overlap="segmentaldup:$segmentaldup_db"
 
 
 
@@ -76,4 +77,4 @@ compute_regions_overlap_fraction.sh "$input_cnv_file" "$regions_to_overlap" "$ou
 
 
 # Clean up temporary BED files
-rm -f  "$segmentaldup_db" "$par_db"
+rm -f  "$segmentaldup_db"

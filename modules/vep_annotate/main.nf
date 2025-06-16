@@ -130,10 +130,10 @@ process buildGeneDB {
 
     #Adding constraints file via right join on geneDB using gene_IDs
     duckdb -c "COPY ( 
-                        SELECT gene_id, CAST(NULLIF("lof.oe_ci.upper", 'NA') AS DOUBLE) AS LOEUF
-                        FROM read_csv(${constraints}. delim = '\\t') AS gnomad
+                        SELECT geneDB.*, CAST(NULLIF(\\"lof.oe_ci.upper\\", 'NA') AS DOUBLE) AS LOEUF
+                        FROM read_csv(\\"${constraints}\\", delim = '\\t') AS gnomad
                         RIGHT JOIN (SELECT * FROM read_parquet('tmp_formatted.parquet')) AS geneDB
-                        ON geneDB.Gene = gnomad.gene_id
+                        ON geneDB.Transcript_ID = gnomad.transcript
         ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
     "
     """

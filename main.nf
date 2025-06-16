@@ -84,7 +84,8 @@ process joinTables {
             SELECT * FROM ${input_db}
             FULL JOIN (SELECT * EXCLUDE (Allele, Location) FROM ${vep_db})
             USING (CNV_ID)
-        ) TO "cnvDB.parquet" (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 5_000_00);
+        ) TO "cnvDB.parquet" (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 5_000_000,
+                              KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
     "
     """
 

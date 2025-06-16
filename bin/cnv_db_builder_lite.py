@@ -11,7 +11,9 @@ output = sys.argv[2]
 #scan csv and cast to schema
 df  = pl.scan_csv(input,
                   separator="\t",
-                  infer_schema_length=50000)
+                  infer_schema_length=100000,
+		  schema_overrides = {"par_Overlap" : pl.Float64,
+				      "segmentaldup_Overlap": pl.Float64})
 
 
 #Creating CNV_ID Column
