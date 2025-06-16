@@ -36,11 +36,9 @@ Minimally the output table is as follows:
 |int        | End                | Chromosome End position.
 |string     | TYPE               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |
-|float      | telomere_Overlap   | Percentage base-pair overlap between CNV and telomeric regions. | 
-|float      | centromere_Overlap | Percentage base-pair overlap between CNV and centromeric regions. |
 |float      | segmentaldup_Overlap | Percentage base-pair overlap between CNV and segmental duplication regions. |
-|string     | Gene               | Ensembl ID for the overlapping gene with the CNV. |
-|string     | Feature             | Ensembl ID for the __transcript__ overlapping with the CNV |
+|string     | Gene_ID             | Ensembl ID for the overlapping gene with the CNV. |
+|string     | Transcript_ID       | Ensembl ID for the __transcript__ overlapping with the CNV |
 |string[]   | Consequence         | String list of Gene disruptions annotated by VEP.   | 
 |boolean    | CANONICAL           | Transcript level canonical flag.                 |
 |string     | MANE                | Matched Annotation from NCBI and EMBL-EBI (MANE) flag. [https://www.ncbi.nlm.nih.gov/refseq/MANE/](https://www.ncbi.nlm.nih.gov/refseq/MANE/). __Only available in HG38__ |
@@ -49,7 +47,7 @@ Minimally the output table is as follows:
 |float      | Exon_Overlap        | Percentage transform of the EXON column. See notes |
 |float      | Transcript_bp_Overlap | Base-pair percentage overlap of the transcript with the CNV. |
 |float      | Gnomad_Max_AF         | Maximum allele frequency of matching structural variant across populations. See notes. |  
-
+|float 	    | LOEUF		    | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained)|	
 All other columns from the input are passed with their types estimated by python polars. 
 
 
