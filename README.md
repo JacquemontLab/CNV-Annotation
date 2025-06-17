@@ -1,6 +1,6 @@
 # CNV-DB-Builder
 
-Nextflow pipeline for building a database from a single CNV file. The input that is expected is a bed-like format with the following columns:
+Nextflow pipeline for building a database from a single CNV file. The input that is expected is a bed-like format with at least the following columns:
 
 ```mermaid 
 erDiagram
@@ -14,7 +14,7 @@ erDiagram
     }
 ```
 
-Where TYPE is a string that is either "DEL" or "DUP". Header names are optional while positioning is not.
+Where TYPE is a string that is either "DEL" or "DUP". Header names are optional while positioning is not. All other columns are passed over to the output.
 
 ### Dependencies 
  - python 3.13+
