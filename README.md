@@ -1,6 +1,6 @@
-# CNV-DB-Builder-Lite
+# CNV-DB-Builder
 
-Nextflow pipeline for building a database from a single CNV file. This is a simplified implementation of the CNV-DB-Builder pipeline with only the VEP annotation. The input that is expected is a bed-like format with the  following columns:
+Nextflow pipeline for building a database from a single CNV file. The input that is expected is a bed-like format with the following columns:
 
 ```mermaid 
 erDiagram
