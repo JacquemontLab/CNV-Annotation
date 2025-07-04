@@ -11,19 +11,17 @@ output = sys.argv[2]
 #scan csv and cast to schema
 df  = pl.scan_csv(input,
                   separator="\t",
-                  infer_schema_length=100000,
-		  schema_overrides = {"par_Overlap" : pl.Float64,
-				      "segmentaldup_Overlap": pl.Float64})
+                  infer_schema_length=100000)
 
 
 #Creating CNV_ID Column
 df = df.with_columns(
-        pl.concat_str([pl.col(col) for col in df.collect_schema().names()[1:5]],separator = "_").alias("CNV_ID")
+        pl.concat_str([pl.col(col) for col in df.columns[1:5]],separator = "_").alias("CNV_ID")
 )
 
 #Defining output order, putting IDs in front
 order = (["CNV_ID", "SampleID"] +
-         [col for col in df.collect_schema().names() if col not in ["CNV_ID", "SampleID"]])
+         [col for col in df.columns if col not in ["CNV_ID", "SampleID"]])
 
 df = df.select(order)
 df.sink_parquet(output)

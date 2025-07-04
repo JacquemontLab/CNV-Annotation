@@ -3,7 +3,7 @@
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --ntasks=1                    # Run on a single CPU
 #SBATCH --cpus-per-task=16
-#SBATCH --mem-per-cpu=2G                     # Job memory request
+#SBATCH --mem-per-cpu=4G                     # Job memory request
 #SBATCH --time=01:00:00               # Time limit hrs:min:sec
 #SBATCH --output=SPARK_XHMM_DB_%j.log   # Standard output and error log
 #SBATCH --account=rrg-jacquese        #group account

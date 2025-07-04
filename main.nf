@@ -79,7 +79,7 @@ process joinTables {
 
     script:
     """
-    duckdb -c "
+    duckdb -c " 
         COPY(
             SELECT * FROM ${input_db}
             FULL JOIN (SELECT * EXCLUDE (Allele, Location, Transcript_Coordinates) FROM ${vep_db})
@@ -87,6 +87,12 @@ process joinTables {
         ) TO "cnvDB.parquet" (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 5_000_000,
                               KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
     "
+
+
+    if [ \$? -ne 0 ]; then
+        echo "DuckDB failed — likely due to OOM"
+        exit 100  
+    fi
     """
 
     stub:

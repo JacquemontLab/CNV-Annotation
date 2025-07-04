@@ -20,8 +20,6 @@
 # Date: April 2025
 ###############################################################################
 
-set -euo pipefail
-
 # Check input arguments
 if [ "$#" -ne 3 ]; then
     echo "Error: Incorrect number of arguments."
@@ -61,7 +59,7 @@ cnv_bed=$(mktemp)
 cnv_annotated=$(mktemp)
 
 # Save header line
-header_update="$(echo $($read_cmd "$input_file" | head -n 1))"
+header_update=$($read_cmd "$input_file" | head -n 1)
 
 # --- Format CNV into BED format (Chr, Start, End, SampleID) ---s
 $read_cmd "$input_file" | tail -n +2 | awk 'BEGIN{OFS="\t"}{ print $2, $3, $4, $1}' | sort -k1,1 -k2,2n > "$cnv_bed"
