@@ -12,19 +12,10 @@ https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=2529510726_A566RApY6cLEYg7x3NCXAq
 
 SegmentalDups_GRCh38.bed from :
 https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=2529510726_A566RApY6cLEYg7x3NCXAq93ABrZ&clade=mammal&org=&db=hg38&hgta_group=allTracks&hgta_track=genomicSuperDups&hgta_table=genomicSuperDups&hgta_regionType=genome&position=&hgta_outputType=bed&hgta_outFileName=SegmentalDups_GRCh38.bed
-```
-cut -f1-3 SegmentalDups_GRCh38.bed | 
-                 sort -k1,1 -k2,2n | 
-               bedtools merge -i - | 
-               awk 'BEGIN {OFS="\t"} {print $0, "segmentaldup", "GRCh38"}' | awk '$1 ~ /^chr([1-9]|1[0-9]|2[0-2]|X|Y)$/'> \
-               merged_SegmentalDups_GRCh38.bed
 
-cut -f1-3 SegmentalDups_GRCh37.bed | 
-                 sort -k1,1 -k2,2n | 
-               bedtools merge -i - | 
-               awk 'BEGIN {OFS="\t"} {print $0, "segmentaldup", "GRCh37"}' | awk '$1 ~ /^chr([1-9]|1[0-9]|2[0-2]|X|Y)$/'> \
-               merged_SegmentalDups_GRCh37.bed
-```
+cut -f1-3 SegmentalDups_GRCh38.bed | sort -k1,1 -k2,2n | bedtools merge -i - | awk 'BEGIN {OFS="\t"} {print $0, "segmentaldup", "GRCh38"}' | awk '$1 ~ /^chr([1-9]|1[0-9]|2[0-2]|X|Y)$/'> merged_SegmentalDups_GRCh38.bed
+cut -f1-3 SegmentalDups_GRCh37.bed | sort -k1,1 -k2,2n | bedtools merge -i - | awk 'BEGIN {OFS="\t"} {print $0, "segmentaldup", "GRCh37"}' | awk '$1 ~ /^chr([1-9]|1[0-9]|2[0-2]|X|Y)$/'> merged_SegmentalDups_GRCh37.bed
+
 
 ## PAR (Pseudoautosomal Region) regions dataset
 From https://www.ncbi.nlm.nih.gov/grc/human on 25/04/2025
@@ -66,8 +57,7 @@ chrX	89140845	93328068	XTR	GRCh38
 Downloaded on 25/04/2025 from https://genome.ucsc.edu/cgi-bin/hgTables
 
 ChromosomeBand_GRCh37.tsv from :
-https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=2529613476_dkAUVDEoH74j8LaCc6nSM9DQngP5&clade=mammal&org=Human&db=hg19&hgta_group=map&hgta_track=cytoBand&hgta_table=0&hgta_regionType=genome&position=chr7%3A155%2C592%2C223-155%2C605%2C565&hgta_outputType=primaryTable&hgta_outFileName=ChromosomeBand
-ChromosomeBand_GRCh37.tsv
+https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=2529613476_dkAUVDEoH74j8LaCc6nSM9DQngP5&clade=mammal&org=Human&db=hg19&hgta_group=map&hgta_track=cytoBand&hgta_table=0&hgta_regionType=genome&position=chr7%3A155%2C592%2C223-155%2C605%2C565&hgta_outputType=primaryTable&hgta_outFileName=ChromosomeBand_GRCh37.tsv
 
 
 ChromosomeBand_GRCh38.tsv from :
@@ -75,8 +65,7 @@ https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=2529613476_dkAUVDEoH74j8LaCc6nSM9
 
 ### Formatting Code, example on GRCh37
 
-#### Get first and last bands for each chromosome (after skipping header), then filter for 'gneg' (telomeric regions), keep only canonical chromosomes, and format the output with a "telomere" label.
-```
+#### Get first and last bands for each chromosome (after skipping header), then filtering out 'gvar' (acrocentric chromosome), keep only canonical chromosomes, and format the output with a "telomere" label.
 genome_version=GRCh37
 awk 'NR > 1' ChromosomeBand_${genome_version}.tsv | sort -k1,1 -k2,2n | \
 awk '
@@ -91,21 +80,14 @@ awk '
 }
 END {
     print last_line
-}' | grep gneg | 
-awk '$1 ~ /^chr([1-9]|1[0-9]|2[0-2]|X|Y)$/' | 
-                                  cut -f1-3 | 
-                        bedtools merge -i - | 
-awk -v gv="${genome_version}" 'BEGIN {OFS="\t"} {print $0, "telomere", gv}' > telomere_${genome_version}.tsv
-```
+}' | awk '$1 ~ /^chr([1-9]|1[0-9]|2[0-2]|X|Y)$/' | grep -v gvar | cut -f1-3 | bedtools merge -i - | awk -v gv="${genome_version}" 'BEGIN {OFS="\t"} {print $0, "telomere", gv}' > telomere_${genome_version}.tsv
 
 #### Extract centromeric regions (gieStain == "acen"), restrict to canonical chromosomes, and format with a "centromere" label.
-```
 grep acen ChromosomeBand_${genome_version}.tsv | awk '$1 ~ /^chr([1-9]|1[0-9]|2[0-2]|X|Y)$/' | cut -f1-3 | bedtools merge -i - | awk -v gv="${genome_version}" 'BEGIN {OFS="\t"} {print $0, "centromere", gv}' > centromere_${genome_version}.tsv
-```
+
 #### Combine centromere and telomere regions into a unified, sorted file.
-```
 cat centromere_${genome_version}.tsv telomere_${genome_version}.tsv | sort -k1,1 -k2,2n > regions_${genome_version}.tsv
-```
+
 
 ### Getting Transcript Coordinates from GTF file:
 ```
