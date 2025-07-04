@@ -82,7 +82,7 @@ process joinTables {
     duckdb -c "
         COPY(
             SELECT * FROM ${input_db}
-            FULL JOIN (SELECT * EXCLUDE (Allele, Location) FROM ${vep_db})
+            FULL JOIN (SELECT * EXCLUDE (Allele, Location, Transcript_Coordinates) FROM ${vep_db})
             USING (CNV_ID)
         ) TO "cnvDB.parquet" (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 5_000_000,
                               KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
@@ -153,8 +153,10 @@ workflow {
 
         joinTables    ( VEP_ANNOTATE.out,
                         buildCnvDB.out          )
-
+        
+ 
         buildSummary  (params.cohort_tag)
+        
 
     publish:
         cnv_db       = joinTables.out

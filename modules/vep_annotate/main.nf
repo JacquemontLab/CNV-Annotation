@@ -115,6 +115,8 @@ process buildGeneDB {
     input:
     path vep_out
     path constraints
+    path transcript_coors
+    val genome_version
 
     output:
     path "geneDB.parquet"
@@ -132,9 +134,20 @@ process buildGeneDB {
     duckdb -c "COPY ( 
                         SELECT geneDB.*, CAST(NULLIF(\\"lof.oe_ci.upper\\", 'NA') AS DOUBLE) AS LOEUF
                         FROM read_csv(\\"${constraints}\\", delim = '\\t') AS gnomad
-                        RIGHT JOIN (SELECT * FROM read_parquet('tmp_formatted.parquet')) AS geneDB
-                        ON geneDB.Transcript_ID = gnomad.transcript
-        ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
+                        RIGHT JOIN (SELECT * FROM read_parquet('tmp_formatted.parquet')) AS geneDB ON geneDB.Transcript_ID = gnomad.transcript
+                        
+        ) TO "tmp_gene_constraints.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
+    "
+    #Adding transcript Coordinates
+    duckdb -c " COPY (
+                    SELECT 
+                       geneDB.*,
+                        {'Chr': t_coors.Chr, 'Start': t_coors.Start, 'Stop': t_coors.Stop} AS Transcript_Coordinates
+                        FROM read_parquet(${transcript_coors}) AS t_coors
+                        RIGHT JOIN read_parquet('tmp_gene_constraints.parquet') AS geneDB
+                        USING (Transcript_ID)
+                ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD', KV_METADATA {genome_version : \'${genome_version}\'});
+    
     "
     """
 
@@ -157,13 +170,17 @@ workflow VEP_ANNOTATE {
     formatVEPInput(cnv_ch)
 
     if(genome_version == "GRCh38"){
+        t_coors = Channel.fromPath("${projectDir}/resources/transcript_coords/transcript_coords_38.parquet")
         VEP_38(formatVEPInput.out, vep_cache, file(gnomad_sv) )
         vep_ch = VEP_38.out.results
     } else if(genome_version == "GRCh37") {
+        t_coors = Channel.fromPath("${projectDir}/resources/transcript_coords/transcript_coords_37.parquet")
         VEP_37(formatVEPInput.out, vep_cache, file(gnomad_sv))
         vep_ch = VEP_37.out.results
     }
-    db = buildGeneDB(vep_ch, gnomad_constraints)
+
+
+    db = buildGeneDB(vep_ch, gnomad_constraints, t_coors, genome_version)
     emit:
     db
     //vep_comments = vep_ch.out.comments

@@ -107,7 +107,39 @@ grep acen ChromosomeBand_${genome_version}.tsv | awk '$1 ~ /^chr([1-9]|1[0-9]|2[
 cat centromere_${genome_version}.tsv telomere_${genome_version}.tsv | sort -k1,1 -k2,2n > regions_${genome_version}.tsv
 ```
 
+### Getting Transcript Coordinates from GTF file:
+```
+curl https://ftp.ensembl.org/pub/release-113/gtf/homo_sapiens/Homo_sapiens.GRCh38.113.gtf.gz > Homo_sapiens.GRCh38.113.gtf.gz
 
+duckdb -c "                       
+    CREATE TABLE tbl AS (SELECT * FROM read_csv('Homo_sapiens.GRCh38.113.gtf.gz', delim = '\t', all_varchar = true));
+    ALTER TABLE tbl ADD COLUMN transcript_id VARCHAR;
+    UPDATE tbl SET transcript_id = REGEXP_EXTRACT(string_split(column8, ';')[3], 'transcript_id \"(.*?)\"', 1);
+
+    COPY(SELECT column0::VARCHAR AS Chr,
+                column3::INTEGER AS Start,
+                column4::INTEGER AS Stop, 
+                transcript_id FROM tbl WHERE(column2 = 'transcript')) 
+    TO transcript_coords_38.parquet;
+    "
+
+
+curl https://ftp.ensembl.org/pub/grch37/release-113/gtf/homo_sapiens/Homo_sapiens.GRCh37.87.chr.gtf.gz > Homo_sapiens.GRCh37.87.gtf.gz
+
+duckdb -c "                       
+    CREATE TABLE tbl AS (SELECT * FROM read_csv('Homo_sapiens.GRCh37.87.gtf.gz', delim = '\t', all_varchar = true));
+    ALTER TABLE tbl ADD COLUMN transcript_id VARCHAR;
+    UPDATE tbl SET transcript_id = REGEXP_EXTRACT(string_split(column8, ';')[3], 'transcript_id \"(.*?)\"', 1);
+
+    COPY(SELECT column0::VARCHAR AS Chr,
+                column3::INTEGER AS Start,
+                column4::INTEGER AS Stop, 
+                transcript_id FROM tbl WHERE(column2 = 'transcript')) 
+    TO transcript_coords_37.parquet;
+    "
+
+
+```
 
 
 
