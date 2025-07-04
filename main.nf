@@ -172,7 +172,7 @@ output {
     }
     summary {
         mode 'copy'
-        path "${params.cohort_tag}/"
+        path "${params.cohort_tag}/docs/"
     }
     
 }
