@@ -29,12 +29,12 @@ Minimally the output table is as follows:
 
 | __dTYPE__ | __Column__ | __Description__                                    | 
 |:--------- | -----------| -------------------------------------------------- |
-|string     | CNV_ID             | ID of the CNV in the format of 'CHR_Start_End_TYPE'|
+|string     | CNV_ID             | ID of the CNV in the format of 'CHR_Start_End_Type'|
 |string     | SampleID           | Cohort Specific ID for individual samples          |
 |string     | Chr                | Chromosome Id. Optionally prefixed with 'Chr'      |
 |int        | Start              | Chromosome start position. Ideally coordinates should match ensembl in that they are one-based and inclusive.|
 |int        | End                | Chromosome End position.
-|string     | TYPE               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
+|string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |
 |float      | segmentaldup_Overlap | Percentage base-pair overlap between CNV and segmental duplication regions. |
 |string     | Gene_ID             | Ensembl ID for the overlapping gene with the CNV. |
@@ -48,6 +48,10 @@ Minimally the output table is as follows:
 |float      | Transcript_bp_Overlap | Base-pair percentage overlap of the transcript with the CNV. |
 |float      | Gnomad_Max_AF         | Maximum allele frequency of matching structural variant across populations. See notes. |  
 |float 	    | LOEUF		    | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained)|	
+| int       | Transcript_Start       | Genomic coordinate where the **transcript** starts (1-based, inclusive)                                   |	
+| int       | Transcript_End         | Genomic coordinate where the **transcript** ends (1-based, inclusive)                                     |	
+| int       | Exon_count             | Number of exons in the transcript                                                                         |	
+
 
 All other columns from the input are passed with their types estimated by python polars. 
 The pipeline currently produces two parquet files, one being the formatted input file and the other the formatted VEP output,  and merges them based on CNV_ID alone. The structure between the ID columns are multiplcative and hierchical. SampleIDs, for instance will be duplicated in the following manner: 

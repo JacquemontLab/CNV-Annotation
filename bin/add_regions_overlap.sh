@@ -55,6 +55,7 @@ NR > 1 && $4 == "segmentaldup" && $5 == genome {
     print $1, $2, $3
 }' "$regions_file" > "$segmentaldup_db"
 
+
 # Create a temporary BED file for par regions
 par_db=$(mktemp --suffix=.bed)
 awk -v genome="$genome_version" 'BEGIN {
@@ -66,9 +67,30 @@ NR > 1 && ($4 == "PAR1" || $4 == "PAR2" || $4 == "XTR") && $5 == genome {
 }' "$regions_file" > "$par_db"
 
 
+# Create a temporary BED file for centromere
+centromere_db=$(mktemp --suffix=.bed)
+awk -v genome="$genome_version" 'BEGIN {
+    OFS="\t"
+    print "Chr", "Start", "End"
+}
+NR > 1 && $4 == "centromere" && $5 == genome {
+    print $1, $2, $3
+}' "$regions_file" > "$centromere_db"
+
+
+# Create a temporary BED file for telomere
+telomere_db=$(mktemp --suffix=.bed)
+awk -v genome="$genome_version" 'BEGIN {
+    OFS="\t"
+    print "Chr", "Start", "End"
+}
+NR > 1 && $4 == "telomere" && $5 == genome {
+    print $1, $2, $3
+}' "$regions_file" > "$telomere_db"
+
 
 # Format string to pass to overlap computation script
-regions_to_overlap="segmentaldup:$segmentaldup_db"
+regions_to_overlap="segmentaldup:$segmentaldup_db,centromere:$centromere_db,telomere:$telomere_db"
 
 
 
@@ -77,4 +99,4 @@ compute_regions_overlap_fraction.sh "$input_cnv_file" "$regions_to_overlap" "$ou
 
 
 # Clean up temporary BED files
-rm -f  "$segmentaldup_db"
+rm -f  "$segmentaldup_db" "$telomere_db" "$centromere_db"

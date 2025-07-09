@@ -31,14 +31,14 @@ def main():
     """
     Script entry point. This function defines the execution order of the following functions.
     """
-    #Lazy df creation
+    # Lazy df creation
     df = pl.scan_parquet(sys.argv[1])
 
-    #initial cleaning that shouldn't be done in parallel, (yet?)
+    # Initial cleaning that shouldn't be done in parallel, (yet?)
     df = make_null(df)
     df = make_exon_overlap(df)
 
-    #parallel processing 
+    # Parallel processing 
     out = (
             df.pipe(make_transcript_overlap)
             .pipe(make_max_gnomad) #expects NULL values
@@ -47,7 +47,7 @@ def main():
             .pipe(make_consequence_list)
           )
 
-    #Outfile streaming to second positional argument
+    # Outfile streaming to second positional argument
     out.rename({"Feature": "Transcript_ID","Gene": "Gene_ID"}).sink_parquet(sys.argv[2], compression="lz4")
     
 
@@ -68,7 +68,7 @@ def make_exon_overlap(df):
     Returns:
         pl.DataFrame: A new DataFrame with the computed 'exon_overlap' column added.
     """
-    # getting range of overlapped exons
+    # Getting range of overlapped exons
     df = df \
         .with_columns([
         pl.when(pl.col("EXON").is_not_null())
@@ -80,7 +80,7 @@ def make_exon_overlap(df):
         ).otherwise(None)
     ])
 
-    # getting total num of exons
+    # Getting total num of exons
     df = df \
         .with_columns([
         pl.when(pl.col("EXON").is_not_null())
@@ -101,7 +101,7 @@ def make_exon_overlap(df):
         .alias('exon_range_split')
     ])
 
-    # adding exon overlap
+    # Adding exon overlap
     df = df \
         .with_columns(
         # check if only one exon is found overlapping
@@ -174,13 +174,14 @@ def make_transcript_overlap(df):
 
 def make_canon_bool(df):
     df = df.with_columns(
-        pl.when(
-            pl.col("CANONICAL").str.contains("YES")
-        )
+        pl.when(pl.col("Feature").is_not_null())
         .then(
-            pl.lit(True)
+            pl.col("CANONICAL").fill_null("")  # Replace null with empty string
+            .str.contains("YES")               # Will now return False or True
         )
-        .otherwise(False).alias("CANONICAL")
+        .otherwise(None)
+        .cast(pl.Boolean)
+        .alias("CANONICAL")
     )
     return df
 
@@ -209,15 +210,15 @@ def make_max_gnomad(df):
         pl.DataFrame: A copy of the DataFrame with the 'gnomad_max_freq' column added
                       and all original 'gnomad_AF_*' columns removed.
     """
-    #getting maximum value per list element
+    # Getting maximum value per list element
     df = df \
         .with_columns([
-            #replace nulls with a Float 0
+            # Replace nulls with a Float 0
             pl.when(
                 pl.col(col).is_null()
             ) 
             .then(pl.lit(0.0, dtype=pl.Float32))
-            #rows containing string is split, cast to float and the max is extracted
+            # Rows containing string is split, cast to float and the max is extracted
             .otherwise(
                  pl.col(col)
                 .str.split(",")
@@ -227,7 +228,7 @@ def make_max_gnomad(df):
             .alias(col)
             for col in df.collect_schema() if col.startswith("gnomad")]
         )
-    #getting maximum across columns (rowwise)
+    # Getting maximum across columns (rowwise)
     df = df \
         .with_columns(
             pl.max_horizontal(pl.col("^gnomad_.*$"))
@@ -248,21 +249,21 @@ def make_CNV_ID(df):
         pl.DataFrame: A copy of the DataFrame with a new, first-position 'CNV_ID' column.
     """
     df = df.with_columns(
-    #extract first three letters
+    # Extract first three letters
         pl.col("Allele").str.slice(0,3).str.to_uppercase()
         .alias("Allele")
     )
-    #Concat location and CNV type into one column
+    # Concat location and CNV type into one column
     df = df.with_columns(
         (pl.col("Location")  + "_" +  pl.col("Allele"))
         .alias("CNV_ID")
     )
-    #replace new coord delimiter
+    # Replace new coord delimiter
     df = df.with_columns(
         pl.col("CNV_ID").str.replace_all(r"[:|-]", "_")
         .alias("CNV_ID")
     )
-    #reorder to first position, remove old id
+    # Reorder to first position, remove old id
     cols = ["CNV_ID"] + [col for col in df.columns if col not in ["CNV_ID", "#Uploaded_variation"]]
  
     return df.select(cols)

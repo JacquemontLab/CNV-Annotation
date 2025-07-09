@@ -2,11 +2,10 @@
 
 
 
-//Formatting inputs for VEP annotation.
-//This expects output from DigCNV, TO BE CHANGED 
+// This process formats CNV input files for VEP (Variant Effect Predictor) annotation.
+// It extracts unique CNV coordinates to reduce redundant queries and speed up VEP processing.
 process formatVEPInput {
     label 'quick'
-    label 'polars'
     
     input:
     path cnvs 
@@ -21,10 +20,11 @@ process formatVEPInput {
 }
 
 
+// Annotating CNVs for gene disruptions using VEP (Variant Effect Predictor)
+// Requires Singularity/Apptainer container for reproducibility and environment consistency
 
-//Annotating for Gene disruptions
-//process parameters in config. Requires apptainer image
-process VEP_38 {
+// Description: Runs VEP on unique CNV coordinates (GRCh38 assembly)
+process VEP_GRCh38 {
 
     label 'vep'
     input:
@@ -36,7 +36,6 @@ process VEP_38 {
     output:
     path "vep_out.tsv", emit : results
     path "*html", emit : summary
-    path "*_warnings.txt", emit : warnings
     path "vep_comments.txt", emit : comments
     
 
@@ -66,8 +65,8 @@ process VEP_38 {
     """
 }
 
-
-process VEP_37 {
+// Description: Runs VEP on unique CNV coordinates (GRCh37 assembly)
+process VEP_GRCh37 {
     label 'vep'
     
     input:
@@ -79,7 +78,6 @@ process VEP_37 {
     output:
     path "vep_out.tsv", emit : results
     path "*html", emit : summary
-    path "*_warnings.txt", emit : warnings
     path "vep_comments.txt", emit : comments
     
 
@@ -108,14 +106,17 @@ process VEP_37 {
     """
 }
 
+
+// Process to build a gene database by integrating VEP annotations, gnomAD constraints variable LOEUF, 
+// and transcript metadata. Outputs a compressed Parquet file with genome version metadata.
+
 process buildGeneDB {
     label 'quick'
-    label 'polars'
 
     input:
     path vep_out
-    path constraints
-    path transcript_coors
+    path gnomad_constraints
+    path transcript_metadata
     val genome_version
 
     output:
@@ -123,34 +124,35 @@ process buildGeneDB {
 
     script:
     """
-    #First transform large VEP output to parquet
+    # First transform large VEP output to parquet
     duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
                TO 'tmp_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
 
-    #Formatting output
+    # Formatting output
     gene_db.py tmp_db.parquet tmp_formatted.parquet
 
-    #Adding constraints file via right join on geneDB using gene_IDs
+    # Adding gnomad_constraints file via right join on geneDB using gene_IDs
     duckdb -c "COPY ( 
                         SELECT geneDB.*, CAST(NULLIF(\\"lof.oe_ci.upper\\", 'NA') AS DOUBLE) AS LOEUF
-                        FROM read_csv(\\"${constraints}\\", delim = '\\t') AS gnomad
+                        FROM read_csv(\\"${gnomad_constraints}\\", delim = '\\t') AS gnomad
                         RIGHT JOIN (SELECT * FROM read_parquet('tmp_formatted.parquet')) AS geneDB ON geneDB.Transcript_ID = gnomad.transcript
                         
         ) TO "tmp_gene_constraints.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
     "
-    #Adding transcript Coordinates
+    
+    # Adding Transcript Metadata
     duckdb -c " COPY (
                     SELECT 
                        geneDB.*,
-                        {'Chr': t_coors.Chr, 'Start': t_coors.Start, 'Stop': t_coors.Stop} AS Transcript_Coordinates
-                        FROM read_parquet(${transcript_coors}) AS t_coors
+                        tbl_transcript.Start AS Transcript_Start,
+                        tbl_transcript.Stop AS Transcript_Stop,
+                        tbl_transcript.Exon_count AS Exon_count
+                        FROM read_parquet(${transcript_metadata}) AS tbl_transcript
                         RIGHT JOIN read_parquet('tmp_gene_constraints.parquet') AS geneDB
                         USING (Transcript_ID)
                 ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD', KV_METADATA {genome_version : \'${genome_version}\'});
-    
     "
     """
-
 }
 
 
@@ -170,21 +172,17 @@ workflow VEP_ANNOTATE {
     formatVEPInput(cnv_ch)
 
     if(genome_version == "GRCh38"){
-        t_coors = Channel.fromPath("${projectDir}/resources/transcript_coords/transcript_coords_38.parquet")
-        VEP_38(formatVEPInput.out, vep_cache, file(gnomad_sv) )
-        vep_ch = VEP_38.out.results
+        tbl_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh38.parquet")
+        VEP_GRCh38(formatVEPInput.out, vep_cache, file(gnomad_sv) )
+        vep_ch = VEP_GRCh38.out.results
     } else if(genome_version == "GRCh37") {
-        t_coors = Channel.fromPath("${projectDir}/resources/transcript_coords/transcript_coords_37.parquet")
-        VEP_37(formatVEPInput.out, vep_cache, file(gnomad_sv))
-        vep_ch = VEP_37.out.results
+        tbl_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh37.parquet")
+        VEP_GRCh37(formatVEPInput.out, vep_cache, file(gnomad_sv))
+        vep_ch = VEP_GRCh37.out.results
     }
 
 
-    db = buildGeneDB(vep_ch, gnomad_constraints, t_coors, genome_version)
+    db = buildGeneDB(vep_ch, gnomad_constraints, tbl_metadata, genome_version)
     emit:
     db
-    //vep_comments = vep_ch.out.comments
-    //vep_summary  = vep_ch.out.summary
-
-    
 }
