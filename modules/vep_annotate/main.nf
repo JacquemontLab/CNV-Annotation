@@ -4,7 +4,7 @@
 
 // This process formats CNV input files for VEP (Variant Effect Predictor) annotation.
 // It extracts unique CNV coordinates to reduce redundant queries and speed up VEP processing.
-process formatVEPInput {
+process identifyUniqCNV {
     label 'quick'
     
     input:
@@ -16,6 +16,34 @@ process formatVEPInput {
     script:
     """
     prepare_cnvs_vep.py ${cnvs} "uniq_cnvs.bed"
+    """
+}
+
+// This process annotates CNVs by overlapping them with genomic regions,
+// then formats the output to include a unique CNV identifier for downstream analysis.
+
+process computeOverlapRegion {    
+    label 'quick'
+
+    input:
+    path uniq_cnvs
+    val genomic_regions
+    path regions_file 
+
+    output:
+    path "CNVs_overlap_region_with_CNV_ID.tsv"
+
+    script:
+    """
+    # Add a SampleID column with value 'uniq' to the CNVs input file required for the script to run
+    awk -v sample="uniq" \
+    'BEGIN{OFS="\\t"; print "SampleID\\tChr\\tStart\\tEnd\\tType\\tStrand"} {print sample, \$0}' ${uniq_cnvs} > uniq_cnvs_with_sample.tsv
+
+    # Run custom script to add overlap information between CNVs and genomic regions
+    add_regions_overlap.sh uniq_cnvs_with_sample.tsv ${regions_file} ${genomic_regions} "CNVs_with_genomic_regions_overlap.tsv"
+
+    # Format overlap output to add a CNV_ID column for unique CNV identification and keep only _Overlap columns
+    format_overlap.sh "CNVs_with_genomic_regions_overlap.tsv" "CNVs_overlap_region_with_CNV_ID.tsv"
     """
 }
 
@@ -117,6 +145,7 @@ process buildGeneDB {
     path vep_out
     path gnomad_constraints
     path transcript_metadata
+    path region_overlap
     val genome_version
 
     output:
@@ -141,7 +170,7 @@ process buildGeneDB {
     "
     
     # Adding Transcript Metadata
-    duckdb -c " COPY (
+    duckdb -c "    COPY (
                     SELECT 
                        geneDB.*,
                         tbl_transcript.Start AS Transcript_Start,
@@ -150,6 +179,18 @@ process buildGeneDB {
                         FROM read_parquet(${transcript_metadata}) AS tbl_transcript
                         RIGHT JOIN read_parquet('tmp_gene_constraints.parquet') AS geneDB
                         USING (Transcript_ID)
+                ) TO "tmp_transcript_metadata.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
+    "
+
+    
+    # Adding Overlap Region
+    duckdb -c " COPY (
+                        SELECT geneDB.*, tbl_region_overlap.* EXCLUDE(CNV_ID),
+                        -- Extract Chr from CNV_ID by taking substring before first '_'
+                        SUBSTR(CNV_ID, 1, INSTR(CNV_ID || '_', '_') - 1) AS Chr
+                        FROM read_csv_auto('${region_overlap}', delim='\\t', header=true) AS tbl_region_overlap
+                        RIGHT JOIN read_parquet('tmp_transcript_metadata.parquet') AS geneDB
+                        USING (CNV_ID)
                 ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD', KV_METADATA {genome_version : \'${genome_version}\'});
     "
     """
@@ -162,6 +203,7 @@ workflow VEP_ANNOTATE {
     take:
     cnv_ch
     genome_version
+    genomic_regions
     vep_cache
     gnomad_sv
     gnomad_constraints
@@ -169,20 +211,21 @@ workflow VEP_ANNOTATE {
 
     main:
 
-    formatVEPInput(cnv_ch)
+    identifyUniqCNV(cnv_ch)
 
     if(genome_version == "GRCh38"){
         tbl_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh38.parquet")
-        VEP_GRCh38(formatVEPInput.out, vep_cache, file(gnomad_sv) )
+        VEP_GRCh38(identifyUniqCNV.out, vep_cache, file(gnomad_sv) )
         vep_ch = VEP_GRCh38.out.results
     } else if(genome_version == "GRCh37") {
         tbl_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh37.parquet")
-        VEP_GRCh37(formatVEPInput.out, vep_cache, file(gnomad_sv))
+        VEP_GRCh37(identifyUniqCNV.out, vep_cache, file(gnomad_sv))
         vep_ch = VEP_GRCh37.out.results
     }
 
+    computeOverlapRegion(identifyUniqCNV.out, genome_version, genomic_regions)
 
-    db = buildGeneDB(vep_ch, gnomad_constraints, tbl_metadata, genome_version)
+    db = buildGeneDB(vep_ch, gnomad_constraints, tbl_metadata, computeOverlapRegion.out, genome_version)
     emit:
     db
 }

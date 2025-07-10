@@ -5,23 +5,31 @@ import sys
 input = sys.argv[1]
 output = sys.argv[2]
 
-#Expects CNV file to at least contain the following columns in the proceeding order:
+# Expecting existing columns
 # SampleID      Chr     Start   End     Type
 
-#scan csv and cast to schema
+# Convert column names to lowercase for case-insensitive mapping
+with open(input) as f:
+    header = f.readline().strip().split("\t")
+col_map = {name.lower(): name for name in header}
+
+# Scan csv and cast to schema
 df  = pl.scan_csv(input,
                   separator="\t",
                   infer_schema_length=100000)
 
-
-#Creating CNV_ID Column
+# Create CNV_ID column
 df = df.with_columns(
-        pl.concat_str([pl.col(col) for col in df.columns[1:5]],separator = "_").alias("CNV_ID")
+    pl.concat_str([
+        pl.col(col_map["chr"]), 
+        pl.col(col_map["start"]), 
+        pl.col(col_map["end"]), 
+        pl.col(col_map["type"])], separator="_").alias("CNV_ID")
 )
 
-#Defining output order, putting IDs in front
+# Defining output order, putting IDs in front
 order = (["CNV_ID", "SampleID"] +
          [col for col in df.columns if col not in ["CNV_ID", "SampleID"]])
-
 df = df.select(order)
+
 df.sink_parquet(output)

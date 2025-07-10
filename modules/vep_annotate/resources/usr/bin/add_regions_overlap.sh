@@ -93,7 +93,6 @@ NR > 1 && $4 == "telomere" && $5 == genome {
 regions_to_overlap="segmentaldup:$segmentaldup_db,centromere:$centromere_db,telomere:$telomere_db"
 
 
-
 # Annotate input CNV file with overlap metrics
 compute_regions_overlap_fraction.sh "$input_cnv_file" "$regions_to_overlap" "$output_file"
 

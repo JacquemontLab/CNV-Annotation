@@ -106,7 +106,3 @@ Where "2-3/4" is a CNV that overlaps from the second to the third exon in gene o
 #### Transcript_bp_Overlap
 
 This is a default field supplied by VEP. It is simply the base pair overlap the CNV shares with a transcript.
-
-
-
-

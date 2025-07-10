@@ -5,12 +5,13 @@
 # Description: Calculates the fraction of overlap between CNV intervals and
 #              multiple sets of genomic regions (BED files). Outputs a TSV
 #              file with overlap fractions for each region set.
+#              The constructed temporary ID corresponds to SampleID, Chr, Start, End, Type
 #
 # Usage:
 #   ./annotate_cnv_overlap_by_regions.sh <cnv_file[.gz]> <region_list> <output_file[.gz]>
 #
 #   <cnv_file[.gz]>     : CNV input file, gzipped or plain text.
-#                         Must contain columns: SampleID, Chr, Start, End (tab-separated).
+#                         Must contain columns: SampleID, Chr, Start, End, Type (tab-separated).
 #   <region_list>       : Comma-separated list of region definitions in the form:
 #                         "name1:file1.bed[.gz],name2:file2.bed[.gz],..."
 #                         Each BED file must have: Chr, Start, End.
@@ -28,7 +29,7 @@ if [ "$#" -ne 3 ]; then
     echo "Arguments:"
     echo "  <input_file[.gz]>       : The input CNV file (either gzipped or uncompressed)."
     echo "                            Must contain at least the following columns:"
-    echo "                            SampleID\tChr\tStart\tEnd"
+    echo "                            SampleID\tChr\tStart\tEnd\tType"
     echo "  <regions_to_overlap> : A comma-separated list of regions with corresponding BED files."
     echo "                            Each entry should be in the format 'first_region_name:bed_file,second_region_name:bed_file'."
     echo "                            Each BED file must contain at least the following columns:"
@@ -62,10 +63,10 @@ cnv_annotated=$(mktemp)
 header_update=$($read_cmd "$input_file" | head -n 1)
 
 # --- Format CNV into BED format (Chr, Start, End, SampleID) ---s
-$read_cmd "$input_file" | tail -n +2 | awk 'BEGIN{OFS="\t"}{ print $2, $3, $4, $1}' | sort -k1,1 -k2,2n > "$cnv_bed"
+$read_cmd "$input_file" | tail -n +2 | awk 'BEGIN{OFS="\t"}{ print $2, $3, $4, $1, $5}' | sort -k1,1 -k2,2n > "$cnv_bed"
 
-# --- Save original CNV data (SampleID,Chr,Start,End...) but format for later pasting ---
-$read_cmd "$input_file" | tail -n +2 | awk 'BEGIN{OFS="\t"} {$1=$1","$2; $2=""; print}' - | sort -k1,1 -k2,2n > "$cnv_annotated"
+# --- Save original CNV data (SampleID,Chr,Start,End...) but format for later pasting by creating a column id ---
+$read_cmd "$input_file" | tail -n +2 | awk 'BEGIN{OFS="\t"} {id_col=$1","$2","$3","$4","$5; print id_col, $0}' - | sort -k1,1 -k2,2n > "$cnv_annotated"
 
 
 # --- Process each region set (name:file.bed) ---
@@ -100,7 +101,7 @@ for item in ${regions_to_overlap//,/ }; do
 
     # --- Sum overlaps per CNV, calculate overlap fraction ---
     overlap_summary=$(mktemp)
-    awk 'BEGIN{OFS="\t"} {$1=$4","$1; $4=""; print}' "$overlap_bed" | sort -k1,1 -k2,2n | bedtools merge -i - -c 8 -o sum > "$overlap_summary"
+    awk 'BEGIN{OFS="\t"} {id_col=$4","$1","$2","$3","$5; print id_col, $2 ,$3, $0}' "$overlap_bed" | sort -k1,1 -k2,2n | bedtools merge -i - -c 12 -o sum > "$overlap_summary"
 
     # Merge overlapping intervals and compute fraction
     temp_frac_overlap_bed=$(mktemp)
@@ -128,7 +129,7 @@ done
 # - Merge the CNV data with the newly calculated overlap fractions
 final_output=$(mktemp)
 ( echo -e "$header_update" && \
-awk -F'\t' 'BEGIN{OFS="\t"} {split($1, arr, ","); $1=arr[1]; $2=arr[2]; print $0}' "$cnv_annotated" ) | {
+cut -f2- "$cnv_annotated" ) | {
     if [[ "$output_file" == *.gz ]]; then
         gzip > "$final_output"
     else

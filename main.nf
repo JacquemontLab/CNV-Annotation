@@ -42,22 +42,17 @@ process buildSampleDB {
 }
 
 process buildCnvDB {
-    
     label 'quick'
 
     input:
     path cnvs
-    val genome_version
-    path regions_file 
 
     output:
     path "inputDB.parquet"
 
     script:
     """
-    add_regions_overlap.sh ${cnvs} ${regions_file} ${genome_version} "CNVs_with_genomic_regions_overlap.tsv"
-
-    cnv_db_builder_lite.py CNVs_with_genomic_regions_overlap.tsv inputDB.parquet
+    cnv_db_builder_lite.py ${cnvs} inputDB.parquet
     """
 
     stub:
@@ -67,7 +62,7 @@ process buildCnvDB {
 }
 
 process joinTables {
-    label 'quick' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
+    label 'high_memory' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
 
     input:
     path vep_db
@@ -78,19 +73,67 @@ process joinTables {
 
     script:
     """
-    duckdb -c " 
-        COPY(
-            SELECT * FROM ${input_db}
-            FULL JOIN (SELECT * EXCLUDE (Allele, Location) FROM ${vep_db})
-            USING (CNV_ID)
-        ) TO "cnvDB.parquet" (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 5_000_000,
-                              KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
+    # Extract chromosomes to process into chr_list.txt
+    duckdb -c "COPY (SELECT DISTINCT Chr FROM 'inputDB.parquet') TO 'chr_list.txt' WITH (FORMAT csv, HEADER false);"
+
+    # Read chromosomes into an array
+    mapfile -t CHR_LIST < chr_list.txt
+
+    echo "Chromosomes to process: \${CHR_LIST[*]}"
+
+    for CHR in "\${CHR_LIST[@]}"; do
+        echo "Processing chromosome \$CHR"
+        
+        # Extract available memory (GiB) as integer
+        export AVAILABLE_MEM=\$(free -h | awk '/Mem:/ {gsub(/Gi/, "", \$7); print int(\$7)}')
+        LIMIT_MEM=\$((AVAILABLE_MEM - 4))
+
+        echo "Available memory: \$AVAILABLE_MEM GiB"
+        echo "Memory limit after subtraction: \$LIMIT_MEM GiB"
+
+        # Run DuckDB with memory limit
+        duckdb -c " 
+            SET memory_limit='\${LIMIT_MEM}GB';
+
+            COPY(
+                SELECT * 
+                FROM (SELECT * FROM '${input_db}' WHERE Chr = '\${CHR}')
+                FULL JOIN (
+                    SELECT * EXCLUDE (Allele, Location, Chr) FROM '${vep_db}' WHERE Chr = '\${CHR}'
+                )
+                USING (CNV_ID)
+            )  TO 'cnvDB_\${CHR}.parquet' (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 500000,
+                                KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
+        "
+        if [ \$? -ne 0 ]; then
+            echo "DuckDB failed on chromosome \$CHR — likely due to OOM"
+            exit 100  
+        fi
+    done
+
+    # Merge parquet files into one (concatenate)
+    duckdb cnvDB.duckdb -c "
+        CREATE TABLE cnvDB_all AS SELECT * FROM read_parquet('cnvDB_chr1.parquet') LIMIT 0;
+    "
+
+    for file in cnvDB_*.parquet; do
+        echo "Appending \$file ..."
+        duckdb cnvDB.duckdb -c "
+        INSERT INTO cnvDB_all SELECT * FROM read_parquet('\$file');
+        "
+    done
+
+    duckdb cnvDB.duckdb -c "
+        SET memory_limit='\${LIMIT_MEM}GB';
+
+        COPY cnvDB_all TO 'cnvDB.parquet' (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 500000);
     "
 
     if [ \$? -ne 0 ]; then
-        echo "DuckDB failed — likely due to OOM"
-        exit 100  
+        echo "DuckDB failed during merging parquet files"
+        exit 101
     fi
+
     """
 
     stub:
@@ -172,17 +215,16 @@ workflow {
         cnvs_ch   = Channel.fromPath(file(params.cnvs))
 
         VEP_ANNOTATE (  cnvs_ch, 
-                        params.genome_version, 
+                        params.genome_version,
+                        params.genomic_regions, 
                         params.vep_cache, 
                         params.gnomad_AF,
                         params.gnomad_constraints )
         
-        buildCnvDB    ( cnvs_ch,
-                        params.genome_version,
-                        params.genome_regions )
+        buildCnvDB    ( cnvs_ch)
 
         joinTables    ( VEP_ANNOTATE.out,
-                        buildCnvDB.out )
+                        buildCnvDB.out)
         
         produceSummaryPDF (
                         joinTables.out,
