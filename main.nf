@@ -62,7 +62,7 @@ process buildCnvDB {
 }
 
 process joinTables {
-    label 'quick' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
+    label 'high_memory' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
 
     input:
     path vep_db
