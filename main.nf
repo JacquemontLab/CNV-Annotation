@@ -62,7 +62,7 @@ process buildCnvDB {
 }
 
 process joinTables {
-    label 'high_memory' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
+    label 'quick' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
 
     input:
     path vep_db
@@ -86,7 +86,7 @@ process joinTables {
         
         # Extract available memory (GiB) as integer
         export AVAILABLE_MEM=\$(free -h | awk '/Mem:/ {gsub(/Gi/, "", \$7); print int(\$7)}')
-        LIMIT_MEM=\$((AVAILABLE_MEM - 4))
+        LIMIT_MEM=\$((AVAILABLE_MEM - 20))
 
         echo "Available memory: \$AVAILABLE_MEM GiB"
         echo "Memory limit after subtraction: \$LIMIT_MEM GiB"
