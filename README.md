@@ -49,7 +49,7 @@ Minimally the output table is as follows:
 |float      | Exon_Overlap        | Percentage transform of the EXON column. See notes |
 |float      | Transcript_bp_Overlap | Base-pair percentage overlap of the transcript with the CNV. |
 |float      | Gnomad_Max_AF         | Maximum allele frequency of matching structural variant across populations. See notes. |  
-|float 	    | LOEUF		    | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained)|	
+|float 	    | LOEUF		    | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained) for the given transcript_ID |	
 | int       | Transcript_Start       | Genomic coordinate where the **transcript** starts (1-based, inclusive)                                   |	
 | int       | Transcript_End         | Genomic coordinate where the **transcript** ends (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript                                                                         |	
