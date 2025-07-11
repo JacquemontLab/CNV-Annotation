@@ -139,7 +139,6 @@ process VEP_GRCh37 {
 // and transcript metadata. Outputs a compressed Parquet file with genome version metadata.
 
 process buildGeneDB {
-    label 'quick'
 
     input:
     path vep_out

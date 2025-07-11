@@ -62,11 +62,13 @@ process buildCnvDB {
 }
 
 process joinTables {
-    label 'high_memory' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
+    tag { "${tag}" }
+    // label 'quick' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
 
     input:
     path vep_db
     path input_db
+    val tag
 
     output:
     path "cnvDB.parquet"
@@ -126,7 +128,8 @@ process joinTables {
     duckdb cnvDB.duckdb -c "
         SET memory_limit='\${LIMIT_MEM}GB';
 
-        COPY cnvDB_all TO 'cnvDB.parquet' (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 500000);
+        COPY cnvDB_all TO 'cnvDB.parquet' (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 500000,
+                                KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
     "
 
     if [ \$? -ne 0 ]; then
@@ -162,6 +165,7 @@ process produceSummaryPDF {
 
 process buildSummary {
     label 'quick'
+    
     input:
     val cohort_tag
     val cnvs_path
@@ -214,6 +218,11 @@ workflow {
     
         cnvs_ch   = Channel.fromPath(file(params.cnvs))
 
+        tag_file_size = cnvs_ch.map { file ->
+            def sizeGB = file.size() / 1_073_741_824
+            sizeGB > 2 ? 'LargeFile' : 'SmallFile'
+        }
+
         VEP_ANNOTATE (  cnvs_ch, 
                         params.genome_version,
                         params.genomic_regions, 
@@ -224,7 +233,8 @@ workflow {
         buildCnvDB    ( cnvs_ch)
 
         joinTables    ( VEP_ANNOTATE.out,
-                        buildCnvDB.out)
+                        buildCnvDB.out,
+                        tag_file_size)
         
         produceSummaryPDF (
                         joinTables.out,
