@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                    # Run on a single CPU
 #SBATCH --cpus-per-task=64
 #SBATCH --mem-per-cpu=3500MB                     # Job memory request
-#SBATCH --time=20:00:00               # Time limit hrs:min:sec
+#SBATCH --time=10:00:00               # Time limit hrs:min:sec
 #SBATCH --output=SPARK_XHMM_DB_%j.log   # Standard output and error log
 #SBATCH --account=rrg-jacquese        #group account
 
@@ -19,7 +19,7 @@ pip install --no-index polars
 
 NXF_VER=25.04.2
 export NXF_OFFLINE=true
-/lustre06/project/6008022/All_user_common_folder/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs /home/flben/projects/rrg-jacquese/flben/cnv_builder_work/data/XHMM_allCNV_SPARK_genotyping_reoder.tsv \
+/lustre06/project/6008022/All_user_common_folder/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs /home/flben/projects/rrg-jacquese/flben/cnv_builder_work/data/XHMM_allCNV_SPARK_genotyping_reoder_EQ_not0.tsv \
     --genome_version "GRCh38" \
     --cohort_tag "SPARK_XHMM" \
     -c setup/ccdb/ccdb.config \
