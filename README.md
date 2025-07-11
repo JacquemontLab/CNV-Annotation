@@ -51,6 +51,9 @@ Minimally the output table is as follows:
 | int       | Transcript_Start       | Genomic coordinate where the **transcript** starts (1-based, inclusive)                                   |	
 | int       | Transcript_End         | Genomic coordinate where the **transcript** ends (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript                                                                         |	
+|float      | segmentaldup_Overlap  | Percentage base-pair overlap between CNV and segmental duplication regions.         |	
+|float      | centromere_Overlap    | Percentage base-pair overlap between CNV and centromeric regions.         |	
+|float      | telomere_Overlap      | Percentage base-pair overlap between CNV and telomeric regions.         |
 
 
 All other columns from the input are passed with their types estimated by python polars. 

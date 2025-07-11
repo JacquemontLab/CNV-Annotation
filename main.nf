@@ -3,43 +3,9 @@
 nextflow.preview.output = true
 nextflow.enable.moduleBinaries = true
 
-//test params
-params.cnvs           = "${projectDir}/test-data/CNVs.tsv"
-params.genome_version = "GRCh37"
-params.cohort_tag     = "ALSPAC"
-
-
 
 include { VEP_ANNOTATE } from './modules/vep_annotate'
 
-
-process buildSampleDB {
-    label 'quick'
-
-    input:
-    path plink
-    path qc_scores
-
-
-    output:
-    path "sampleDB.parquet"
-
-    script:
-    """
-    duckdb -c "COPY (
-                    SELECT *
-                    FROM  read_csv(${plink}, delim='\\t', header=True) AS t1
-                    RIGHT JOIN read_csv(${qc_scores}, delim='\\t', header=True) AS t2
-                    USING (SampleID)
-                    ) 
-                TO 'sampleDB.parquet' (FORMAT 'parquet');"
-    """
-
-    stub:
-    """
-    touch sampleDB.parquet
-    """
-}
 
 process buildCnvDB {
     label 'quick'
@@ -54,16 +20,10 @@ process buildCnvDB {
     """
     cnv_db_builder_lite.py ${cnvs} inputDB.parquet
     """
-
-    stub:
-    """
-    touch cnvDB.parquet
-    """
 }
 
 process joinTables {
     tag { "${tag}" }
-    // label 'quick' // expect to run on launch job with a good number of cpus ~16 minimum and 32gb ram
 
     input:
     path vep_db
@@ -76,7 +36,7 @@ process joinTables {
     script:
     """
     # Extract chromosomes to process into chr_list.txt
-    duckdb -c "COPY (SELECT DISTINCT Chr FROM 'inputDB.parquet') TO 'chr_list.txt' WITH (FORMAT csv, HEADER false);"
+    duckdb -c "COPY (SELECT DISTINCT Chr FROM '${input_db}') TO 'chr_list.txt' WITH (FORMAT csv, HEADER false);"
 
     # Read chromosomes into an array
     mapfile -t CHR_LIST < chr_list.txt
@@ -107,10 +67,6 @@ process joinTables {
             )  TO 'cnvDB_\${CHR}.parquet' (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 500000,
                                 KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
         "
-        if [ \$? -ne 0 ]; then
-            echo "DuckDB failed on chromosome \$CHR — likely due to OOM"
-            exit 100  
-        fi
     done
 
     # Merge parquet files into one (concatenate)
@@ -132,17 +88,8 @@ process joinTables {
                                 KV_METADATA {DB_Run_Name: \'${workflow.runName}\'});
     "
 
-    if [ \$? -ne 0 ]; then
-        echo "DuckDB failed during merging parquet files"
-        exit 101
-    fi
-
     """
 
-    stub:
-    """
-    touch cnvDB.parquet
-    """
 }
 
 
