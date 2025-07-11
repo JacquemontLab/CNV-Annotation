@@ -1,3 +1,5 @@
+[![Jacquemont's Lab Header](labheader.png)](https://www.jacquemont-lab.org/)
+
 # CNV-DB-Builder
 
 Nextflow pipeline for building a database from a single CNV file. The input that is expected is a bed-like format with at least the following columns:
