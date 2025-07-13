@@ -81,7 +81,7 @@ process VEP_GRCh38 {
     --fork ${task.cpus}\
     --overlaps\
     --canonical\
-    --max_sv_size 20000000\
+    --max_sv_size 100000000\
     --verbose\
     --mane\
     --assembly GRCh38 \
@@ -123,7 +123,7 @@ process VEP_GRCh37 {
     --fork ${task.cpus}\
     --overlaps\
     --canonical\
-    --max_sv_size 20000000\
+    --max_sv_size 100000000\
     --verbose\
     --assembly GRCh37 \
     --custom file="./${gnomad_sv}",short_name=gnomad,format=VCF,reciprocal=1,overlap_cutoff=70,same_type=1,fields=AFR_AF%AMR_AF%EAS_AF%EUR_AF \
