@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=64
 #SBATCH --mem-per-cpu=3500MB                     # Job memory request
 #SBATCH --time=01:00:00               # Time limit hrs:min:sec
-#SBATCH --output=SPARK_XHMM_DB_%j.log   # Standard output and error log
+#SBATCH --output=cnvDB_Buider_%j.log   # Standard output and error log
 #SBATCH --account=rrg-jacquese        #group account
 
 
