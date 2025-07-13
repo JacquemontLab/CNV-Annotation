@@ -1,4 +1,6 @@
 #!/bin/bash
+# First argument is the .tsv file to annotate
+
 #SBATCH --job-name=cnvDB_Buider    # Job name
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --ntasks=1                    # Run on a single CPU
