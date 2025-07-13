@@ -55,6 +55,7 @@ process computeOverlapRegion {
 process VEP_GRCh38 {
 
     label 'vep'
+    
     input:
     path uniq_cnvs
     path vep_cache
