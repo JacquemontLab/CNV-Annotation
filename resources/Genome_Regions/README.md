@@ -1,7 +1,7 @@
 
 # Genomic regions of interest TSV File only for canonical chromosomes
 # All the following data are combined in one unique file Genome_Regions_data.tsv
-ChrStart\tEnd\tRegion\tGenomeVersion
+Chr\tStart\tEnd\tRegion\tGenomeVersion
 
 ## Segmental Duplication regions dataset
 
