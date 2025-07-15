@@ -122,14 +122,16 @@ fi
 echo "⬇️  Downloading VEP cache files..."
 pushd "$RESOURCE_DIR" > /dev/null
 
-
 for build in GRCh38 GRCh37; do
     cache_file="homo_sapiens_vep_113_${build}.tar.gz"
-    if [[ ! -f "$cache_file" ]]; then
-        curl -O "https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/${cache_file}"
-        tar -xzf "$cache_file"
+    cache_path="$RESOURCE_DIR/$cache_file"
+    
+    if [[ ! -f "$cache_path" ]]; then
+        echo "⬇️  Downloading VEP cache for $build..."
+        curl -o "$cache_path" "https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/${cache_file}"
+        tar -xzf "$cache_path" -C "$RESOURCE_DIR"
     else
-        echo "✅ VEP cache for $build already downloaded."
+        echo "✅ VEP cache for $build already exists at $cache_path"
     fi
 done
 
