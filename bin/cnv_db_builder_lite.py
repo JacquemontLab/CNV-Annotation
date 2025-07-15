@@ -16,7 +16,7 @@ col_map = {name.lower(): name for name in header}
 # Scan csv and cast to schema
 df  = pl.scan_csv(input,
                   separator="\t",
-                  infer_schema_length=100000)
+                  infer_schema_length=1000000)
 
 # Create CNV_ID column
 df = df.with_columns(
