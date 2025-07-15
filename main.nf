@@ -3,6 +3,21 @@
 nextflow.preview.output = true
 nextflow.enable.moduleBinaries = true
 
+def gnomad_AF
+def gnomad_constraints = "${params.vep_cache}/ressources_LOEUF/gnomad.v4.1.constraint_metrics.tsv"
+
+
+switch (params.genome_version) {
+    case "GRCh38":
+        gnomad_AF = "${params.vep_cache}/ressources_gnomAD/gnomad.v4.1.sv.sites.vcf.bgz"
+        break
+    case "GRCh37":
+        gnomad_AF = "${params.vep_cache}/ressources_gnomAD/gnomad.v2.1.sv.sites.vcf.bgz"
+        break
+    default:
+        error "Unsupported genome version '${params.genome_version}'. Use 'GRCh38' or 'GRCh37'."
+}
+
 
 include { VEP_ANNOTATE } from './modules/vep_annotate'
 
@@ -116,6 +131,7 @@ process buildSummary {
     input:
     val cohort_tag
     val cnvs_path
+    val genome_version
     path last_outfile
 
     output:
@@ -142,6 +158,7 @@ process buildSummary {
        configs: ${workflow.configFiles}
        workDir: ${workflow.workDir}
        input_file: ${cnvs_path}
+       genome_version: ${genome_version}
        launch_user: ${workflow.userName}
        start_time: ${workflow.start}
        duration: \${minutes} minutes and \${seconds} seconds
@@ -159,6 +176,9 @@ process buildSummary {
 }
 
 workflow {
+    log.info "Using genome version: ${params.genome_version}"
+    log.info "gnomAD AF file: ${gnomad_AF}"
+    log.info "gnomAD constraint file: ${gnomad_constraints}"
 
     main:
         //gnomad    = file( projectDir / "resources" / params.genome_version / "gnomad.v*sv.sites.vcf.bgz")
@@ -174,8 +194,8 @@ workflow {
                         params.genome_version,
                         params.genomic_regions, 
                         params.vep_cache, 
-                        params.gnomad_AF,
-                        params.gnomad_constraints )
+                        gnomad_AF,
+                        gnomad_constraints )
         
         buildCnvDB    ( cnvs_ch)
 
@@ -190,6 +210,7 @@ workflow {
         
         buildSummary  (params.cohort_tag,
                         params.cnvs,
+                        params.genome_version,
                         produceSummaryPDF.out )
 
     publish:

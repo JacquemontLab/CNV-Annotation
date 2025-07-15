@@ -21,9 +21,12 @@ pip install --no-index polars
 
 NXF_VER=25.04.2
 export NXF_OFFLINE=true
-/lustre06/project/6008022/All_user_common_folder/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs $1 \
+
+cnv_input_file=$1
+
+/lustre06/project/6008022/All_user_common_folder/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs "$cnv_input_file" \
     --genome_version "GRCh37" \
     --cohort_tag "cnvDB_Buider" \
     -c setup/ccdb/ccdb.config \
-    -with-report results/SPARK_microarray/docs/report.html \
+    -with-report report.html \
     -resume

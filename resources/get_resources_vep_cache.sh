@@ -2,7 +2,7 @@
 module load htslib/1.19
 
 # Script for downloading Allele frequency information from gnomAD
-#https://gnomad.broadinstitute.org/news/2023-11-v4-copy-number-variants/
+# https://gnomad.broadinstitute.org/news/2023-11-v4-copy-number-variants/
 
 curl "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/gnomad.v4.1.cnv.all.vcf.gz" | 
                                                                                                      gunzip -c | 
