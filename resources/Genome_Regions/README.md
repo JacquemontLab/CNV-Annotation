@@ -1,3 +1,4 @@
+
 # Genomic regions of interest TSV File only for canonical chromosomes
 # All the following data are combined in one unique file Genome_Regions_data.tsv
 ChrStart\tEnd\tRegion\tGenomeVersion
@@ -52,6 +53,20 @@ chrX	88395845	92583067	XTR	GRCh37
 chrX	89140845	93328068	XTR	GRCh38
 
 
+## Major Histocompatibility Complex (MHC) region
+From :
+
+GRCh37.p13
+https://www.ncbi.nlm.nih.gov/grc/human/regions/MHC?asm=GRCh37.p13
+
+GRCh38.p14
+https://www.ncbi.nlm.nih.gov/grc/human/regions/MHC?asm=GRCh38.p14
+
+### MHC region coordinates
+chr6	28477797	33448354	MHC	GRCh37
+chr6	28510120	33480577	MHC	GRCh38
+
+
 ## Telomeric and Centromeric regions dataset
 Downloaded on 25/04/2025 from https://genome.ucsc.edu/cgi-bin/hgTables
 
@@ -89,75 +104,6 @@ cat centromere_${genome_version}.tsv telomere_${genome_version}.tsv | sort -k1,1
 
 
 
-# Getting Transcript Metadata from GTF file:
-```
-curl https://ftp.ensembl.org/pub/release-113/gtf/homo_sapiens/Homo_sapiens.GRCh38.113.gtf.gz > Homo_sapiens.GRCh38.113.gtf.gz
-
-duckdb -c "
-    CREATE TABLE tbl AS (
-        SELECT * FROM read_csv('Homo_sapiens.GRCh38.113.gtf.gz', delim = '\t', all_varchar = true)
-    );
-
-    -- Add Transcript_ID by extracting it from column8
-    ALTER TABLE tbl ADD COLUMN Transcript_ID VARCHAR;
-    UPDATE tbl SET Transcript_ID = REGEXP_EXTRACT(string_split(column8, ';')[3], 'transcript_id \"(.*?)\"', 1);
-
-    -- Count exons per Transcript_ID
-    CREATE TABLE exon_counts AS
-    SELECT Transcript_ID, COUNT(*) AS exon_count
-    FROM tbl
-    WHERE column2 = 'exon'
-    GROUP BY Transcript_ID;
-
-    -- Export transcript entries with exon counts
-    COPY (
-        SELECT 
-            column0::VARCHAR AS Chr,
-            column3::INTEGER AS Start,
-            column4::INTEGER AS Stop,
-            tbl.Transcript_ID,
-            COALESCE(exon_counts.exon_count, 0) AS Exon_count
-        FROM tbl
-        LEFT JOIN exon_counts USING (Transcript_ID)
-        WHERE column2 = 'transcript'
-    ) TO 'transcriptDB_GRCh38.parquet';
-"
-
-
-curl https://ftp.ensembl.org/pub/grch37/release-113/gtf/homo_sapiens/Homo_sapiens.GRCh37.87.chr.gtf.gz > Homo_sapiens.GRCh37.87.gtf.gz
-
-duckdb -c "
-    CREATE TABLE tbl AS (
-        SELECT * FROM read_csv('Homo_sapiens.GRCh37.87.gtf.gz', delim = '\t', all_varchar = true)
-    );
-
-    -- Add Transcript_ID by extracting it from column8
-    ALTER TABLE tbl ADD COLUMN Transcript_ID VARCHAR;
-    UPDATE tbl SET Transcript_ID = REGEXP_EXTRACT(string_split(column8, ';')[3], 'transcript_id \"(.*?)\"', 1);
-
-    -- Count exons per Transcript_ID
-    CREATE TABLE exon_counts AS
-    SELECT Transcript_ID, COUNT(*) AS exon_count
-    FROM tbl
-    WHERE column2 = 'exon'
-    GROUP BY Transcript_ID;
-
-    -- Export transcript entries with exon counts
-    COPY (
-        SELECT 
-            column0::VARCHAR AS Chr,
-            column3::INTEGER AS Start,
-            column4::INTEGER AS Stop,
-            tbl.Transcript_ID,
-            COALESCE(exon_counts.exon_count, 0) AS Exon_count
-        FROM tbl
-        LEFT JOIN exon_counts USING (Transcript_ID)
-        WHERE column2 = 'transcript'
-    ) TO 'transcriptDB_GRCh37.parquet';
-"
-
-
-```
 
 
 
