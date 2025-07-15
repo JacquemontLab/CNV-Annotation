@@ -1,155 +1,170 @@
 #!/usr/bin/env bash
 
-
-###########################
+#####################################
+# DB-Builder Cloud Set-Up Script
 #
-# DB-Builder Cloud Set-Up
+# Usage: bash cloud_setup.sh
 #
-# Usage : bash cloud_setup.sh
+# Description:
 # Description : For installing all necessary dependancies on fresh cloud VM. To be run from the setup directory. By default the program will install resources
 #               (the vep cache and gnomad files) into the resources folder. Otherwise the location can be specified uing the -r flag.
 #
-# Requirements: - Requires a .bashrc in the $HOME
-#               - curl
-#               - git 
-#               - perl
-###########################
+# Options:
+#   -r <path> : Path to the resource directory (default: ./resources)
+#
+# Requirements:
+#   - curl
+#   - git
+#   - perl
+#   - .bashrc present in $HOME
+#####################################
 
 set -euo pipefail
 IFS=$'\n\t'
 
-RESOURCE_DIR=$(realpath ../resources)
 
-# Function for checking existing installs
-command_exists() {
-    command -v "$1" &> /dev/null
-}
+# --- Default Parameters ---
+RESOURCE_DIR=$(realpath resources)
 
-
+# --- Command-Line Argument Parser ---
 print_usage() {
     echo "Usage: $0 [-r <resource_dir>]"
-    echo
-    echo "Options:"
-    echo "  -r   Path to the resource directory (default: ../resources)"
+    echo "  -r   Path to the resource directory (default: ./resources)"
     echo "  -h   Show this help message"
 }
 
 while getopts ":r:h" opt; do
-    case ${opt} in
-        r)
-            RESOURCE_DIR=$(realpath "$OPTARG")
-            ;;
-        h)
-            print_usage
-            exit 0
-            ;;
-        \?)
-            echo "Invalid option: -$OPTARG" >&2
-            print_usage
-            exit 1
-            ;;
-        :)
-            echo "Option -$OPTARG requires an argument." >&2
-            print_usage
-            exit 1
-            ;;
+    case "${opt}" in
+        r) RESOURCE_DIR="$(realpath "$OPTARG")" ;;
+        h) print_usage && exit 0 ;;
+        \?) echo "Invalid option: -$OPTARG" >&2; print_usage; exit 1 ;;
+        :)  echo "Option -$OPTARG requires an argument." >&2; print_usage; exit 1 ;;
     esac
 done
 
-echo "Using resource directory: $RESOURCE_DIR"
+echo "📁 Using resource directory: $RESOURCE_DIR"
+mkdir -p "$RESOURCE_DIR"
 
+# --- Function Definitions ---
+command_exists() {
+    command -v "$1" &>/dev/null
+}
 
-#duckdb install 
-if command_exists duckdb; then
-    echo "skipping duckdb install"
-else
-    echo "Installing DuckDb..."
-    curl https://install.duckdb.org | sh
-    echo "Done!"
-fi
-
-
-#latest nextflow install
-echo "Downloading latest Nextflow"
-
-#We need at least Java v17
-REQUIRED_MAJOR=17
 
 check_java_version() {
-    if ! command -v java &>/dev/null; then
-        echo "Java is not installed."
+    if ! command_exists java; then
+        echo "❌ Java is not installed."
         return 1
     fi
-
-    JAVA_VERSION=$(java -version 2>&1 | awk -F[\".] '/version/ {print $2}')
-    
-    if [[ "$JAVA_VERSION" -ge "$REQUIRED_MAJOR" ]]; then
-        echo "Java version $JAVA_VERSION is installed (OK)"
+    local version
+    version=$(java -version 2>&1 | awk -F[\".] '/version/ {print $2}')
+    if [[ "$version" -ge 17 ]]; then
+        echo "✅ Java version $version detected"
         return 0
     else
-        echo "Java version $JAVA_VERSION is installed, but version $REQUIRED_MAJOR+ is required"
+        echo "⚠️ Java version $version is too old, need 17+"
         return 1
     fi
 }
 
+add_to_path_once() {
+    local line="$1"
+    grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
+}
+
+# --- Install DuckDB ---
+if command_exists duckdb; then
+    echo "✅ DuckDB already installed."
+else
+    echo "🔧 Installing DuckDB..."
+    curl -fsSL https://install.duckdb.org | sh
+fi
+
+# --- Install Java (if needed) ---
 if ! check_java_version; then
+    echo "🔧 Installing Java 17 via SDKMAN..."
     curl -s https://get.sdkman.io | bash
-    source ~/.bashrc
+    source "$HOME/.bashrc"
     sdk install java 17.0.10-tem
 fi
 
-#get nextflow and add to home.
+# --- Install Nextflow ---
+echo "⬇️  Installing Nextflow..."
 curl -s https://get.nextflow.io | bash
-chmod +x ~/nextflow
-echo "New nextflow executable added at $HOME"
+mkdir -p "$HOME/bin"
+mv nextflow "$HOME/bin/"
+chmod +x "$HOME/bin/nextflow"
+add_to_path_once 'export PATH="$HOME/bin:$PATH"'
+export PATH="$HOME/bin:$PATH"
+echo "✅ Nextflow installed: $($HOME/bin/nextflow -version)"
 
-#Get VEP 113 
-if ! command_exists vep;then
-    echo "Adding VEP 113 to $HOME"
-    git clone https://github.com/Ensembl/ensembl-vep.git $HOME
-    cd $HOME/ensembl-vep  
-    git checkout release/113
-    perl INSTALL.pl
-    cd -
-
-    cat << 'EOF' >> $HOME/.bashrc
->>>>>> DB_BUILDER INSTALL >>>>>>>>
-export PATH="$HOME/ensembl-vep:$PATH"
-<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-EOF
+# --- Install VEP 113 ---
+VEP_DIR="$HOME/ensembl-vep"
+if ! command_exists vep; then
+    echo "⬇️  Cloning VEP 113 to $VEP_DIR"
+    if [[ -d "$VEP_DIR" && -n "$(ls -A "$VEP_DIR")" ]]; then
+        echo "⚠️  $VEP_DIR exists and is not empty. Skipping VEP clone."
+    else
+        git clone https://github.com/Ensembl/ensembl-vep.git "$VEP_DIR"
+        pushd "$VEP_DIR" > /dev/null
+        git checkout release/113
+        perl INSTALL.pl
+        popd > /dev/null
+        add_to_path_once 'export PATH="$HOME/ensembl-vep:$PATH"'
+        export PATH="$HOME/ensembl-vep:$PATH"
+        echo "✅ VEP 113 installed."
+    fi
+else
+    echo "✅ VEP already installed."
 fi
 
+# --- Download VEP Cache ---
+echo "⬇️  Downloading VEP cache files..."
+pushd "$RESOURCE_DIR" > /dev/null
 
-#File dependancies
 
-echo "Getting VEP cache"
-cd $RESOURCE_DIR
-curl -O https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_113_GRCh38.tar.gz
-tar xzf homo_sapiens_vep_113_GRCh38.tar.gz
-curl -O https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_113_GRCh37.tar.gz
-tar xzf homo_sapiens_vep_113_GRCh37.tar.gz
+for build in GRCh38 GRCh37; do
+    cache_file="homo_sapiens_vep_113_${build}.tar.gz"
+    if [[ ! -f "$cache_file" ]]; then
+        curl -O "https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/${cache_file}"
+        tar -xzf "$cache_file"
+    else
+        echo "✅ VEP cache for $build already downloaded."
+    fi
+done
 
-echo "Downloading extra gnomad resources"
+# --- Download GnomAD Resources ---
+echo "⬇️  Downloading GnomAD CNV/SV files..."
 
-#V4 Hg38
-curl "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/gnomad.v4.1.cnv.all.vcf.gz"  -o "gnomad.v4.1.cnv.all.vcf.gz" &&
-                                                                        gunzip -c  "gnomad.v4.1.cnv.all.vcf.gz" |
-                                                                        bgzip > "gnomad.v4.1.cnv.all.vcf.bgz"   &&
-                                                                        tabix -p vcf "gnomad.v4.1.cnv.all.vcf.bgz"
+download_and_index_vcf() {
+    local url="$1"
+    local base=$(basename "$url")
+    local bgz="${base/.vcf.gz/.vcf.bgz}"
 
-curl "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/genome_sv/gnomad.v4.1.sv.sites.vcf.gz"  -o  "gnomad.v4.1.sv.sites.vcf.gz" &&
-                                                                        gunzip -c  "gnomad.v4.1.sv.sites.vcf.gz" |
-                                                                        bgzip > "gnomad.v4.1.sv.sites.vcf.bgz"   &&
-                                                                        tabix -p vcf "gnomad.v4.1.sv.sites.vcf.bgz"
+    if [[ ! -f "$bgz" ]]; then
+        curl -O "$url"
+        gunzip -c "$base" | bgzip > "$bgz"
+        tabix -p vcf "$bgz"
+    else
+        echo "✅ $bgz already exists."
+    fi
+}
 
-#V2 Hg19
-curl "https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz" -o "gnomad_v2.1_sv.sites.vcf.gz" &&
-                                                                        gunzip -c "gnomad_v2.1_sv.sites.vcf.gz" |
-                                                                        bgzip > "gnomad.v2.1.sv.sites.vcf.bgz"   &&
-                                                                        tabix -p vcf "gnomad.v2.1.sv.sites.vcf.bgz"
-#Getting genetic Constraint metrics (pLi and LOEUF)
-#https://gnomad.broadinstitute.org/help/constraint
+# GnomAD v4.1 (hg38)
+download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/gnomad.v4.1.cnv.all.vcf.gz"
+download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/genome_sv/gnomad.v4.1.sv.sites.vcf.gz"
 
-curl "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv" -o "gnomad.v4.1.constraint_metrics.tsv"
+# GnomAD v2.1 (hg19)
+download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz"
 
-echo "DONE"
+# --- Constraint Metrics ---
+if [[ ! -f "gnomad.v4.1.constraint_metrics.tsv" ]]; then
+    curl -O "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv"
+else
+    echo "✅ Constraint metrics already downloaded."
+fi
+
+popd > /dev/null
+echo "✅ All downloads complete."
+echo "🎉 Setup finished successfully!"
+

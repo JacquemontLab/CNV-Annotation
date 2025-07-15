@@ -19,3 +19,6 @@ curl "https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnom
 											                                                  gunzip -c  | 
                                                                         bgzip > gnomad.v2.1.sv.sites.vcf.bgz   &&
                                                                         tabix -p vcf gnomad.v2.1.sv.sites.vcf.bgz
+
+
+curl "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv" -o "gnomad.v4.1.constraint_metrics.tsv"
