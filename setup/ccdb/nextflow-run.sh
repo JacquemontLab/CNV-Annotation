@@ -1,5 +1,10 @@
 #!/bin/bash
-# First argument is the .tsv file to annotate
+
+# Script to annotate a CNV TSV file in a job.
+
+# First argument is a .tsv file to annotate.
+# It must contain at least the following columns: SampleID, Chr, Start, End, Type.
+# Any additional columns present will be preserved and passed through.
 
 #SBATCH --job-name=cnvDB_Buider    # Job name
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
@@ -25,8 +30,8 @@ export NXF_OFFLINE=true
 cnv_input_file=$1
 
 /lustre06/project/6008022/All_user_common_folder/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs "$cnv_input_file" \
-    --genome_version "GRCh37" \
-    --cohort_tag "cnvDB_Buider" \
+    --genome_version "GRCh38" \
+    --cohort_tag "cnvDB_Buider_GRCh38" \
     -c setup/ccdb/ccdb.config \
     -with-report report.html \
     -resume

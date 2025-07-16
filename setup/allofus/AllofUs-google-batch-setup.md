@@ -4,8 +4,8 @@ This doc is for setting up Google batch processing on the all of us platform. In
 1. Download docker image on local:
 ```bash
 docker pull ensemblorg/ensembl-vep:release_113.4
-
 ```
+
 2. Tag and upload to private Google artifact registry:
 ```bash
 docker tag ensemblorg/ensembl-vep:release_113.4 us-central1-docker.pkg.dev/cnv-profiler-docker/allofus-jacq/ensemblorg/ensembl-vep:release_113.4

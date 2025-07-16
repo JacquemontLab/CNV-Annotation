@@ -104,7 +104,6 @@ process joinTables {
     "
 
     """
-
 }
 
 

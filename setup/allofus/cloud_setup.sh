@@ -78,6 +78,7 @@ if command_exists duckdb; then
 else
     echo "🔧 Installing DuckDB..."
     curl -fsSL https://install.duckdb.org | sh
+    add_to_path_once 'export PATH="$HOME/.duckdb/cli/latest/:$PATH"'
 fi
 
 # --- Install Java (if needed) ---
@@ -87,6 +88,9 @@ if ! check_java_version; then
     source "$HOME/.bashrc"
     sdk install java 17.0.10-tem
 fi
+
+# --- Install Python Packages ---
+pip install duckdb pandas matplotlib tqdm polars
 
 # --- Install Nextflow ---
 echo "⬇️  Installing Nextflow..."
@@ -135,8 +139,13 @@ for build in GRCh38 GRCh37; do
     fi
 done
 
+
 # --- Download GnomAD Resources ---
 echo "⬇️  Downloading GnomAD CNV/SV files..."
+
+# Create and enter ressources_gnomAD directory
+mkdir -p ressources_gnomAD
+pushd ressources_gnomAD > /dev/null
 
 download_and_index_vcf() {
     local url="$1"
@@ -152,6 +161,7 @@ download_and_index_vcf() {
     fi
 }
 
+
 # GnomAD v4.1 (hg38)
 download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/gnomad.v4.1.cnv.all.vcf.gz"
 download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/genome_sv/gnomad.v4.1.sv.sites.vcf.gz"
@@ -159,14 +169,25 @@ download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/r
 # GnomAD v2.1 (hg19)
 download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz"
 
+popd > /dev/null  # Exit ressources_gnomAD
+
+
 # --- Constraint Metrics ---
+echo "⬇️  Downloading Constraint Metrics..."
+
+# Create and enter ressources_LOEUF directory
+mkdir -p ressources_LOEUF
+pushd ressources_LOEUF > /dev/null
+
 if [[ ! -f "gnomad.v4.1.constraint_metrics.tsv" ]]; then
     curl -O "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv"
 else
     echo "✅ Constraint metrics already downloaded."
 fi
 
-popd > /dev/null
+popd > /dev/null  # Exit ressources_LOEUF
+popd > /dev/null  # Exit RESOURCE_DIR
+
 echo "✅ All downloads complete."
 echo "🎉 Setup finished successfully!"
 
