@@ -19,7 +19,6 @@
 #   - .bashrc present in $HOME
 #####################################
 
-set -euo pipefail
 IFS=$'\n\t'
 
 
