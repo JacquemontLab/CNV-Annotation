@@ -86,6 +86,7 @@ if ! check_java_version; then
     echo "🔧 Installing Java 17 via SDKMAN..."
     curl -s https://get.sdkman.io | bash
     source "$HOME/.bashrc"
+    source "$HOME/.zshrc"
     sdk install java 17.0.10-tem
 fi
 
