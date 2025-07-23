@@ -5,13 +5,6 @@
 
 
 import sys
-sys.path = [
-     '/data',
-     '/usr/local/lib/python311.zip',
-     '/usr/local/lib/python3.11',
-     '/usr/local/lib/python3.11/lib-dynload',
-     '/usr/local/lib/python3.11/site-packages',
- ]
 
 import duckdb
 import pandas as pd
