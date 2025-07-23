@@ -90,6 +90,7 @@ if ! check_java_version; then
 fi
 
 # --- Install Python Packages ---
+echo "⬇️  Upgrading pip and installing Python packages..."
 pip install duckdb pandas matplotlib tqdm polars
 
 # --- Install Nextflow ---
