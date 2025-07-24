@@ -190,6 +190,8 @@ fi
 popd > /dev/null  # Exit ressources_LOEUF
 popd > /dev/null  # Exit RESOURCE_DIR
 
+source "$HOME/.bashrc"
+
 echo "✅ All downloads complete."
 echo "🎉 Setup finished successfully!"
 
