@@ -14,7 +14,7 @@
 # Arguments:
 #   <input_cnv_file>   : Input CNV table to annotate (TSV format)
 #                         Must contain columns: SampleID, Chr, Start, End (tab-separated).
-#   <regions_file>     : Genome regions file (TSV) with telomere/centromere/segmentaldup data
+#   <regions_file>     : Genome regions file (TSV) with problematic_regions data
 #   <genome_version>   : Genome version string (e.g., GRCh37, GRCh38)
 #   <output_file>      : Path to output file with added region overlap annotations
 #
@@ -46,51 +46,19 @@ output_file="$4"
 
 
 # Create a temporary BED file for segmental duplications
-segmentaldup_db=$(mktemp --suffix=.bed)
+problematic_regions_db=$(mktemp --suffix=.bed)
 awk -v genome="$genome_version" 'BEGIN {
     OFS="\t"
     print "Chr", "Start", "End"
 }
-NR > 1 && $4 == "segmentaldup" && $5 == genome {
+NR > 1 && $4 == "problematic_regions" && $5 == genome {
     print $1, $2, $3
-}' "$regions_file" > "$segmentaldup_db"
+}' "$regions_file" > "$problematic_regions_db"
 
-
-# Create a temporary BED file for par regions
-par_db=$(mktemp --suffix=.bed)
-awk -v genome="$genome_version" 'BEGIN {
-    OFS="\t"
-    print "Chr", "Start", "End"
-}
-NR > 1 && ($4 == "PAR1" || $4 == "PAR2" || $4 == "XTR") && $5 == genome {
-    print $1, $2, $3
-}' "$regions_file" > "$par_db"
-
-
-# Create a temporary BED file for centromere
-centromere_db=$(mktemp --suffix=.bed)
-awk -v genome="$genome_version" 'BEGIN {
-    OFS="\t"
-    print "Chr", "Start", "End"
-}
-NR > 1 && $4 == "centromere" && $5 == genome {
-    print $1, $2, $3
-}' "$regions_file" > "$centromere_db"
-
-
-# Create a temporary BED file for telomere
-telomere_db=$(mktemp --suffix=.bed)
-awk -v genome="$genome_version" 'BEGIN {
-    OFS="\t"
-    print "Chr", "Start", "End"
-}
-NR > 1 && $4 == "telomere" && $5 == genome {
-    print $1, $2, $3
-}' "$regions_file" > "$telomere_db"
 
 
 # Format string to pass to overlap computation script
-regions_to_overlap="segmentaldup:$segmentaldup_db,centromere:$centromere_db,telomere:$telomere_db"
+regions_to_overlap="problematic_regions:$problematic_regions_db"
 
 
 # Annotate input CNV file with overlap metrics
@@ -98,4 +66,4 @@ compute_regions_overlap_fraction.sh "$input_cnv_file" "$regions_to_overlap" "$ou
 
 
 # Clean up temporary BED files
-rm -f  "$segmentaldup_db" "$telomere_db" "$centromere_db"
+rm -f  "$problematic_regions_db" "$telomere_db" "$centromere_db"
