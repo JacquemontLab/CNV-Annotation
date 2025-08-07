@@ -5,24 +5,45 @@
 
 The pipeline uses the CLI client of duckdb for creating parquet files and joining tables efficiently.  To install duckdb run:
 
-```
+```bash
 curl https://install.duckdb.org | sh
+export PATH="$HOME/.duckdb/cli/latest/:$PATH"
 ```
+
+### Install Python dependencies 
+
+```bash
+pip install duckdb pandas matplotlib tqdm polars
+```
+
+
+### Install VEP
+
+Our pipeline requires VEP 113 to annotate CNVs for transcripts. It can be installed from git. When prompted to cache files, type 'n' as we will do it ourselves in the next step.
+
+```bash
+git clone https://github.com/Ensembl/ensembl-vep.git
+cd ensembl-vep
+git checkout release/113
+perl INSTALL.pl
+```
+
+
 
 ### Download Resources
 The pipeline requires a VEP cache for annotations and auxiliary files from Gnomad.
 
 For downloading the VEP cache for both Hg19 and 38 we use VEP version 113. To download the files use following commands:
 
-```
+```bash
 curl -O https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_113_GRCh38.tar.gz
 tar xzf homo_sapiens_vep_113_GRCh38.tar.gz
 curl -O https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_113_GRCh37.tar.gz
 tar xzf homo_sapiens_vep_113_GRCh37.tar.gz
 ```
 
-The tar commands will generate a directory called homo_sapiens. Gnomad auxiliary files can be stored there or elsewhere using the following script and replacing the "dir" variable:
-```
+The tar commands will generate a directory called homo_sapiens. Gnomad auxiliary files should be stored there
+```bash
 #Getting allele frequency scores for Structural Variants (SVs)
 #https://gnomad.broadinstitute.org/news/2023-11-v4-copy-number-variants/
 
@@ -30,7 +51,6 @@ dir="gnomad_resources"
 
 #V4 Hg38
 curl "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/gnomad.v4.1.cnv.all.vcf.gz"  -o "$dir/gnomad.v4.1.cnv.all.vcf.gz" &&
-
                                                                         gunzip -c  "$dir/gnomad.v4.1.cnv.all.vcf.gz" |
                                                                         bgzip > "$dir/gnomad.v4.1.cnv.all.vcf.bgz"   &&
                                                                         tabix -p vcf "$dir/gnomad.v4.1.cnv.all.vcf.bgz"
@@ -54,31 +74,14 @@ curl "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constra
 
 
 
-
-### Build VEP Container
-The pipeline requires version 113 of VEP. Depending on the platform different containerization software can be used to provide the VEP executable. Regardless, Nextflow supports both docker and apptainer for mounting an image. First, it is recommended to use the following container from dockerhub:
-
-```
- ensemblorg/ensembl-vep:release_113.4
-```
-
-For use on compute canada, compute nodes cannot access the internet, therefore we use a local image built using apptainer.
-
-```
-apptainer pull vep.sif docker://ensemblorg/ensembl-vep:release_113.4
-```
-
-
-
-
 ### Modify Config
 
 The project specific parameters and configurations can be set in the conf directory in a new config file. These configurations should be specific to the platform you plan on using. 
 
 #### VEP
-All processes requiring VEP are labeled with 'vep' in the process definitions. In the process field the absolute path to the container should be provided:
+All processes requiring VEP are labeled with 'vep' in the process definitions.:
 
-```
+```yaml
      withLabel: vep {
         cpus = 16
         container = '/lustre06/project/6008022/All_user_common_folder/SOFTWARE/VEP/vep.sif'
@@ -90,14 +93,9 @@ All processes requiring VEP are labeled with 'vep' in the process definitions. I
 #### Parameters
 Paths to the relevent gnomad files and VEP cache must be provided:
 
-```
+```yaml
 params {
-    vep_cache      = "/lustre06/project/6008022/All_user_common_folder/SOFTWARE/VEP/cache"
-    genome_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
-    
-    //HG38 specific gnomad files
-    gnomad_AF          = "/lustre06/project/6008022/All_user_common_folder/SOFTWARE/VEP/cache/ressources_gnomAD/gnomad.v4.1.sv.sites.vcf.bgz"
-    gnomad_constraints = "/lustre06/project/6008022/All_user_common_folder/SOFTWARE/VEP/cache/ressources_LOEUF/gnomad.v4.1.constraint_metrics.tsv"
+    vep_cache      = "/lustre06/project/6008022/All_user_common_folder/SOFTWARE/VEP/cache
 }
 
 ``` 
