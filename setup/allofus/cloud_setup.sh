@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+# -*- coding: utf-8 -*-
 
-#####################################
+# ####################################
 # DB-Builder Cloud Set-Up Script
 #
 # Usage: bash cloud_setup.sh
@@ -17,29 +18,67 @@
 #   - git
 #   - perl
 #   - .bashrc present in $HOME
-#####################################
+# ####################################
 
 IFS=$'\n\t'
 
 
 # --- Default Parameters ---
-RESOURCE_DIR=$(realpath resources)
+RESOURCE_DIR="$(git rev-parse --show-toplevel)/resources"
+
+
+# --- Git-Variables
+GIT_PROJECT="CNV-DB-Builder"
+
 
 # --- Command-Line Argument Parser ---
 print_usage() {
     echo "Usage: $0 [-r <resource_dir>]"
     echo "  -r   Path to the resource directory (default: ./resources)"
+    echo "  -g   Genome Version for VEP Cache. Either GRCh38 or GRCh37"
     echo "  -h   Show this help message"
 }
 
-while getopts ":r:h" opt; do
+while getopts ":r:h:g:" opt; do
     case "${opt}" in
         r) RESOURCE_DIR="$(realpath "$OPTARG")" ;;
+        g) GENOME_ASSEMBLY="$OPTARG" ;;
         h) print_usage && exit 0 ;;
         \?) echo "Invalid option: -$OPTARG" >&2; print_usage; exit 1 ;;
         :)  echo "Option -$OPTARG requires an argument." >&2; print_usage; exit 1 ;;
     esac
 done
+
+# ---  Checking if we are in the git repo if default resource path is being used ---
+
+#check if default is being used
+if [[ "$RESOURCE_DIR" == "$(git rev-parse --show-toplevel)/resources" ]]; then
+        #check if we are in a git repo
+        GIT_REPO=$(git rev-parse --show-toplevel 2>/dev/null)
+        if [[ -n "$GIT_REPO" ]]; then
+                repo_name=$(basename "$GIT_REPO")
+        else
+                echo "Invalid launch context: git repository not found"
+                exit 1
+        fi
+        #check if we are in the expected repo
+        if [[ "$GIT_PROJECT" == "$repo_name" ]]; then
+                echo "Default resource directory found at: $RESOURCE_DIR"
+        else
+                echo "Invalid launch context: please launch script within the CNV-DB-Builder repository or"
+                echo " provide a path to a resource directory (-r /path/to/dir)"
+                exit 1
+        fi
+fi
+
+
+# Validate GENOME_ASSEMBLY
+if [[ "$GENOME_ASSEMBLY" != "GRCh38" && "$GENOME_ASSEMBLY" != "GRCh37" ]]; then
+    echo "Invalid genome version: $GENOME_ASSEMBLY"
+    exit 1
+fi
+
+
 
 echo "📁 Using resource directory: $RESOURCE_DIR"
 mkdir -p "$RESOURCE_DIR"
@@ -87,6 +126,7 @@ if ! check_java_version; then
     source "$HOME/.bashrc"
     source "$HOME/.zshrc"
     sdk install java 17.0.10-tem
+
 fi
 
 # --- Install Python Packages ---
@@ -113,7 +153,7 @@ if ! command_exists vep; then
         git clone https://github.com/Ensembl/ensembl-vep.git "$VEP_DIR"
         pushd "$VEP_DIR" > /dev/null
         git checkout release/113
-        perl INSTALL.pl
+        yes "n" |  perl INSTALL.pl
         popd > /dev/null
         add_to_path_once 'export PATH="$HOME/ensembl-vep:$PATH"'
         export PATH="$HOME/ensembl-vep:$PATH"
@@ -127,19 +167,19 @@ fi
 echo "⬇️  Downloading VEP cache files..."
 pushd "$RESOURCE_DIR" > /dev/null
 
-for build in GRCh38 GRCh37; do
-    cache_file="homo_sapiens_vep_113_${build}.tar.gz"
-    cache_path="$RESOURCE_DIR/$cache_file"
-    cache_dir="$RESOURCE_DIR/homo_sapiens/113_${build}"
-    
-    if [[ ! -d "$cache_dir" ]]; then
-        echo "⬇️  Downloading VEP cache for $build..."
-        curl -o "$cache_path" "https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/${cache_file}"
-        tar -xzf "$cache_path" -C "$RESOURCE_DIR"
-    else
-        echo "✅ VEP cache for $build already exists at $cache_dir"
-    fi
-done
+
+cache_file="homo_sapiens_vep_113_${GENOME_ASSEMBLY}.tar.gz"
+cache_path="$RESOURCE_DIR/$cache_file"
+cache_dir="$RESOURCE_DIR/homo_sapiens/113_${GENOME_ASSEMBLY}"
+
+if [[ ! -d "$cache_dir" ]]; then
+    echo "⬇️  Downloading VEP cache for $GENOME_ASSEMBLY..."
+    curl -o "$cache_path" "https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/${cache_file}"
+    tar -xzf "$cache_path" -C "$RESOURCE_DIR"
+else
+    echo "✅ VEP cache for${GENOME_ASSEMBLY} already exists at $cache_dir"
+fi
+
 
 
 # --- Download GnomAD Resources ---
@@ -190,8 +230,5 @@ fi
 popd > /dev/null  # Exit ressources_LOEUF
 popd > /dev/null  # Exit RESOURCE_DIR
 
-source "$HOME/.bashrc"
-
 echo "✅ All downloads complete."
 echo "🎉 Setup finished successfully!"
-
