@@ -89,13 +89,3 @@ All processes requiring VEP are labeled with 'vep' in the process definitions.:
         time = '1h'
         }
 ```
-
-#### Parameters
-Paths to the relevent gnomad files and VEP cache must be provided:
-
-```yaml
-params {
-    vep_cache      = "/lustre06/project/6008022/All_user_common_folder/SOFTWARE/VEP/cache
-}
-
-``` 

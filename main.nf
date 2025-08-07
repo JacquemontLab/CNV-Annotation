@@ -5,6 +5,7 @@ nextflow.enable.moduleBinaries = true
 
 //default VEP dir following install script
 params.vep_cache = "${projectDir}/resources/homo_sapiens"
+params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
 
 def gnomad_AF
 def gnomad_constraints = "${params.vep_cache}/ressources_LOEUF/gnomad.v4.1.constraint_metrics.tsv"
