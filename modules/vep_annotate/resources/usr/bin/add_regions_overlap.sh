@@ -66,4 +66,4 @@ compute_regions_overlap_fraction.sh "$input_cnv_file" "$regions_to_overlap" "$ou
 
 
 # Clean up temporary BED files
-rm -f  "$problematic_regions_db" "$telomere_db" "$centromere_db"
+rm -f  "$problematic_regions_db"

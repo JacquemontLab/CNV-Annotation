@@ -46,15 +46,13 @@ process produceSummaryPDF {
 
     input:
     path cnvDB_parquet
-    val cpu
-    val mem_per_cpu
 
     output:
     path "cnvDB_dictionary.pdf"
 
     script:
     """
-    pdf_dictionnary.py ${cnvDB_parquet} ${cpu} ${mem_per_cpu}
+    pdf_dictionnary.py ${cnvDB_parquet} ${task.cpus} ${task.memory}
     """
 }
 
@@ -134,10 +132,7 @@ workflow {
         buildCnvDB    ( cnvs_ch )
 
         
-        produceSummaryPDF (
-                        joinTables.out,
-                        "64",
-                        "3.5" )
+        produceSummaryPDF (  buildCnvDB.out )
         
         buildSummary  (params.cohort_tag,
                         params.cnvs,
