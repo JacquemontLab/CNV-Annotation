@@ -7,7 +7,7 @@
 # Usage: bash cloud_setup.sh
 #
 # Description:
-# Description : For installing all necessary dependancies on fresh cloud VM. To be run from the setup directory. By default the program will install resources
+# Description : For installing all necessary dependancies on fresh cloud VM. By default the program will install resources
 #               (the vep cache and gnomad files) into the resources folder. Otherwise the location can be specified uing the -r flag.
 #
 # Options:
@@ -137,7 +137,7 @@ python3 -m venv "$ENV_DIR/db-builder-env"
 source "$ENV_DIR/db-builder-env/bin/activate"
 pip install --upgrade pip
 pip install duckdb pandas matplotlib tqdm polars
-echo "python virtual environment installed in $ENV_DIR/db-builder-env. Be sure to set the path in your .conf file"
+echo "✅ Python virtual environment installed in $ENV_DIR/db-builder-env. Be sure to set the path in your .conf file"
 deactivate
 
 # --- Install Nextflow ---

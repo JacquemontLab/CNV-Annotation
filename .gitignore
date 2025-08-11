@@ -6,3 +6,4 @@ results/
 test-data/
 .nextflow.log*
 *.log
+env/
