@@ -21,6 +21,7 @@
 # Date: April 2025
 ###############################################################################
 
+set -e
 # Check input arguments
 if [ "$#" -ne 3 ]; then
     echo "Error: Incorrect number of arguments."

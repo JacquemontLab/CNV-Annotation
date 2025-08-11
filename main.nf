@@ -4,8 +4,9 @@ nextflow.preview.output = true
 nextflow.enable.moduleBinaries = true
 
 //default VEP dir following install script
-params.vep_cache = "${projectDir}/resources/homo_sapiens"
+params.vep_cache = "${projectDir}/resources"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
+params.gnomad_dir = params.vep_cache 
 
 def gnomad_AF
 def gnomad_constraints = "${params.vep_cache}/ressources_LOEUF/gnomad.v4.1.constraint_metrics.tsv"
@@ -13,10 +14,10 @@ def gnomad_constraints = "${params.vep_cache}/ressources_LOEUF/gnomad.v4.1.const
 
 switch (params.genome_version) {
     case "GRCh38":
-        gnomad_AF = "${params.vep_cache}/ressources_gnomAD/gnomad.v4.1.sv.sites.vcf.bgz"
+        gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad.v4.1.sv.sites.vcf.bgz"
         break
     case "GRCh37":
-        gnomad_AF = "${params.vep_cache}/ressources_gnomAD/gnomad.v2.1.sv.sites.vcf.bgz"
+        gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad.v2.1.sv.sites.vcf.bgz"
         break
     default:
         error "Unsupported genome version '${params.genome_version}'. Use 'GRCh38' or 'GRCh37'."
@@ -44,6 +45,14 @@ process buildCnvDB {
 
 process produceSummaryPDF {
 
+    memory {
+        // Read from /proc/meminfo (Linux)
+        def memKB = new File('/proc/meminfo')
+            .readLines()
+            .find { it.startsWith('MemTotal:') }
+            .replaceAll(/\D+/, '') as long
+        return (memKB / 1024 / 1024).toInteger().GB
+    }
     input:
     path cnvDB_parquet
 

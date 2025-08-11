@@ -29,7 +29,7 @@ export NXF_OFFLINE=true
 
 cnv_input_file=$1
 
-/lustre06/project/6008022/All_user_common_folder/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs "$cnv_input_file" \
+/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs "$cnv_input_file" \
     --genome_version "GRCh38" \
     --cohort_tag "cnvDB_Buider_GRCh38" \
     -c setup/ccdb/ccdb.config \
