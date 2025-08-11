@@ -27,7 +27,9 @@ Where TYPE is a string that is either "DEL" or "DUP". Header names are optional 
 
 
 ### Output
-Minimally the output table is as follows:
+Minimally, there are two output tables:
+
+#### cnvDB.parquet
 
 | __dTYPE__ | __Column__ | __Description__                                    | 
 |:--------- | -----------| -------------------------------------------------- |
@@ -38,7 +40,14 @@ Minimally the output table is as follows:
 |int        | End                | Chromosome End position.
 |string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |
-|float      | segmentaldup_Overlap | Percentage base-pair overlap between CNV and segmental duplication regions. |
+
+
+#### geneDB.parquet
+
+| __dTYPE__ | __Column__ | __Description__                                    |
+|:--------- | -----------| -------------------------------------------------- |
+|string     | CNV_ID             | ID of the CNV in the format of 'CHR_Start_End_Type'|
+|string     | Location            | Location ID from VEP                               |
 |string     | Gene_ID             | Ensembl ID for the overlapping gene with the CNV. |
 |string     | Transcript_ID       | Ensembl ID for the __transcript__ overlapping with the CNV |
 |string[]   | Consequence         | String list of Gene disruptions annotated by VEP.   | 
@@ -53,20 +62,20 @@ Minimally the output table is as follows:
 | int       | Transcript_Start       | Genomic coordinate where the **transcript** starts (1-based, inclusive)                                   |	
 | int       | Transcript_End         | Genomic coordinate where the **transcript** ends (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript                                                                         |	
-|float      | segmentaldup_Overlap  | Percentage base-pair overlap between CNV and segmental duplication regions.         |	
-|float      | centromere_Overlap    | Percentage base-pair overlap between CNV and centromeric regions.         |	
-|float      | telomere_Overlap      | Percentage base-pair overlap between CNV and telomeric regions.         |
+|float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and segmental duplication regions.         |	
 
 
-All other columns from the input are passed with their types estimated by python polars. 
-The pipeline currently produces two parquet files, one being the formatted input file and the other the formatted VEP output,  and merges them based on CNV_ID alone. The structure between the ID columns are multiplcative and hierchical. SampleIDs, for instance will be duplicated in the following manner: 
 
-```
-# of dup SampleIDs = 1 * #CNV * #GENE * #Transcript
-```   
+All other columns from the input are passed with their types estimated by python polars. The relationship between the tables relies on the CNV_ID. In the cnvDB, all CNVs are present, regardless of duplicates across samples. The geneDB has CNVs that are deduplicated prior to running VEP. All duplicated CNVs are therefore a product of multiple transcripts belonging to the same gene. Intergenic CNVs will also be reported as either NULL in the Gene_ID column or be assigned to a gene if within 5kb of a Start/Stop codon. In the latter case, a consequence flag will be present ('upstream_gene_variant' or 'downstream_gene_variant') 
+
 
 
 ### Notes
+
+#### Consequences
+
+Refer to VEP for exact definitions: https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html
+
 #### MANE 
 MANE flag for transcript. Only supported in Hg38.
 #### Gnomad_Max_AF 
