@@ -6,7 +6,7 @@ nextflow.enable.moduleBinaries = true
 //default VEP dir following install script
 params.vep_cache = "${projectDir}/resources"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
-params.gnomad_dir = params.vep_cache 
+params.gnomad_dir = "${params.vep_cache}/homo_sapiens" 
 
 def gnomad_AF
 def gnomad_constraints = "${params.vep_cache}/ressources_LOEUF/gnomad.v4.1.constraint_metrics.tsv"
@@ -17,7 +17,7 @@ switch (params.genome_version) {
         gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad.v4.1.sv.sites.vcf.bgz"
         break
     case "GRCh37":
-        gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad.v2.1.sv.sites.vcf.bgz"
+        gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad_v2.1_sv.sites.vcf.gz" //expected locations after install script "resources/homo_sapiens/ressources..."
         break
     default:
         error "Unsupported genome version '${params.genome_version}'. Use 'GRCh38' or 'GRCh37'."
