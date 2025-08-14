@@ -17,7 +17,7 @@ switch (params.genome_version) {
         gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad.v4.1.sv.sites.vcf.bgz"
         break
     case "GRCh37":
-        gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad_v2.1_sv.sites.vcf.gz" //expected locations after install script "resources/homo_sapiens/ressources..."
+        gnomad_AF = "${params.gnomad_dir}/ressources_gnomAD/gnomad_v2.1_sv.sites.vcf.bgz" //expected locations after install script "resources/homo_sapiens/ressources..."
         break
     default:
         error "Unsupported genome version '${params.genome_version}'. Use 'GRCh38' or 'GRCh37'."
