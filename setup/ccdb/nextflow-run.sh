@@ -24,14 +24,16 @@ pip install --no-index --upgrade pip
 pip install --no-index polars
 
 
-NXF_VER=25.04.2
+module load nextflow
 export NXF_OFFLINE=true
 
 cnv_input_file=$1
 
-/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Nextflow/nextflow-25.04.2-dist run main.nf --cnvs "$cnv_input_file" \
-    --genome_version "GRCh38" \
-    --cohort_tag "cnvDB_Buider_GRCh38" \
-    -c setup/ccdb/ccdb.config \
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+nextflow run ${SCRIPT_DIR}/../../main.nf --cnvs "$cnv_input_file" \
+    --genome_version "GRCh37" \
+    --cohort_tag "cnvDB_Buider_GRCh37" \
+    -c ${SCRIPT_DIR}/ccdb.config \
     -with-report report.html \
     -resume
