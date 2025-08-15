@@ -12,6 +12,11 @@ duckdb -c "
     ALTER TABLE tbl ADD COLUMN Transcript_ID VARCHAR;
     UPDATE tbl SET Transcript_ID = REGEXP_EXTRACT(string_split(column8, ';')[3], 'transcript_id \"(.*?)\"', 1);
 
+
+    -- Add Gene_ID by extracting it from column8
+    ALTER TABLE tbl ADD COLUMN Gene_ID VARCHAR;
+    UPDATE tbl SET Gene_ID = REGEXP_EXTRACT(string_split(column8, ';')[1], 'gene_id \"(.*?)\"', 1);
+
     -- Count exons per Transcript_ID
     CREATE TABLE exon_counts AS
     SELECT Transcript_ID, COUNT(*) AS exon_count
@@ -26,6 +31,7 @@ duckdb -c "
             column3::INTEGER AS Start,
             column4::INTEGER AS Stop,
             tbl.Transcript_ID,
+            tbl.Gene_ID,
             COALESCE(exon_counts.exon_count, 0) AS Exon_count
         FROM tbl
         LEFT JOIN exon_counts USING (Transcript_ID)
@@ -36,6 +42,7 @@ duckdb -c "
 
 curl https://ftp.ensembl.org/pub/grch37/release-113/gtf/homo_sapiens/Homo_sapiens.GRCh37.87.chr.gtf.gz > Homo_sapiens.GRCh37.87.gtf.gz
 
+
 duckdb -c "
     CREATE TABLE tbl AS (
         SELECT * FROM read_csv('Homo_sapiens.GRCh37.87.gtf.gz', delim = '\t', all_varchar = true)
@@ -44,6 +51,11 @@ duckdb -c "
     -- Add Transcript_ID by extracting it from column8
     ALTER TABLE tbl ADD COLUMN Transcript_ID VARCHAR;
     UPDATE tbl SET Transcript_ID = REGEXP_EXTRACT(string_split(column8, ';')[3], 'transcript_id \"(.*?)\"', 1);
+
+
+    -- Add Gene_ID by extracting it from column8
+    ALTER TABLE tbl ADD COLUMN Gene_ID VARCHAR;
+    UPDATE tbl SET Gene_ID = REGEXP_EXTRACT(string_split(column8, ';')[1], 'gene_id \"(.*?)\"', 1);
 
     -- Count exons per Transcript_ID
     CREATE TABLE exon_counts AS
@@ -59,6 +71,7 @@ duckdb -c "
             column3::INTEGER AS Start,
             column4::INTEGER AS Stop,
             tbl.Transcript_ID,
+            tbl.Gene_ID,
             COALESCE(exon_counts.exon_count, 0) AS Exon_count
         FROM tbl
         LEFT JOIN exon_counts USING (Transcript_ID)
