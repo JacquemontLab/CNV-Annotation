@@ -41,7 +41,7 @@ process loeuf_report {
 
     script:
     """
-    loeuf_cnv_duckdb.py -c ${mergeDB} -l ${loeuf_metadata} -o loeuf_report.png -f Two_Algorithm_Overlap
+    loeuf_cnv_duckdb.py -c ${mergeDB} -l ${loeuf_metadata} -o loeuf_report.png
     """
 }
 
