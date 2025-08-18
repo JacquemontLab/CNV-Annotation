@@ -1,59 +1,21 @@
-#!/usr/bin/env nextflow 
+#!/usr/bin/env nextflow
+
+// ================================================================
+// CNV Annotation with VEP (Variant Effect Predictor)
+// ---------------------------------------------------------------
+// This workflow annotates unique CNVs against genes using VEP.
+// It supports both GRCh37 and GRCh38 genome assemblies.
+// It integrates gnomAD SV data, transcript metadata, and LOEUF
+// constraints to produce a gene-level Parquet database.
+// ================================================================
 
 
-
-// This process formats CNV input files for VEP (Variant Effect Predictor) annotation.
-// It extracts unique CNV coordinates to reduce redundant queries and speed up VEP processing.
-process identifyUniqCNV {
-    label 'quick'
-    
-    input:
-    path cnvs 
-
-    output:
-    path "uniq_cnvs.bed"
-
-    script:
-    """
-    prepare_cnvs_vep.py ${cnvs} "uniq_cnvs.bed"
-    """
-}
-
-// This process annotates CNVs by overlapping them with genomic regions,
-// then formats the output to include a unique CNV identifier for downstream analysis.
-
-process computeOverlapRegion {    
-    label 'quick'
-
-    input:
-    path uniq_cnvs
-    val genomic_regions
-    path regions_file 
-
-    output:
-    path "CNVs_overlap_region_with_CNV_ID.tsv"
-
-    script:
-    """
-    # Add a SampleID column with value 'uniq' to the CNVs input file required for the script to run
-    awk -v sample="uniq" \
-    'BEGIN{OFS="\\t"; print "SampleID\\tChr\\tStart\\tEnd\\tType\\tStrand"} {print sample, \$0}' ${uniq_cnvs} > uniq_cnvs_with_sample.tsv
-
-    # Run custom script to add overlap information between CNVs and genomic regions
-    add_regions_overlap.sh uniq_cnvs_with_sample.tsv ${regions_file} ${genomic_regions} "CNVs_with_genomic_regions_overlap.tsv"
-
-    # Format overlap output to add a CNV_ID column for unique CNV identification and keep only _Overlap columns
-    format_overlap.sh "CNVs_with_genomic_regions_overlap.tsv" "CNVs_overlap_region_with_CNV_ID.tsv"
-    """
-}
-
-
-// Annotating CNVs for gene disruptions using VEP (Variant Effect Predictor)
-// Requires Singularity/Apptainer container for reproducibility and environment consistency
-
-// Description: Runs VEP on unique CNV coordinates (GRCh38 assembly)
+// ---------------------------
+// Process: VEP_GRCh38
+// ---------------------------
+// Runs VEP for GRCh38 assembly, generates tabular and HTML outputs,
+// and extracts comment lines for logs.
 process VEP_GRCh38 {
-
     label 'vep'
     
     input:
@@ -72,6 +34,10 @@ process VEP_GRCh38 {
     """
     tabix -p vcf ${gnomad_sv}
 
+    # detect CPUs inside the container
+    CPUS=\$(nproc)
+    echo "Using \$CPUS CPUs for VEP"
+
     vep -i ${uniq_cnvs} -o vep_out.tsv\
     -cache\
     --tab\
@@ -79,7 +45,7 @@ process VEP_GRCh38 {
     --offline\
     --force_overwrite\
     --numbers\
-    --fork ${task.cpus}\
+    --fork \$CPUS \
     --overlaps\
     --canonical\
     --max_sv_size 100000000\
@@ -94,7 +60,11 @@ process VEP_GRCh38 {
     """
 }
 
-// Description: Runs VEP on unique CNV coordinates (GRCh37 assembly)
+
+// ---------------------------
+// Process: VEP_GRCh37
+// ---------------------------
+// Runs VEP for GRCh37 assembly with genome-specific gnomAD fields.
 process VEP_GRCh37 {
     label 'vep'
     
@@ -113,6 +83,10 @@ process VEP_GRCh37 {
     script:
     """
     tabix -p vcf ${gnomad_sv}
+    
+    # detect CPUs inside the container
+    CPUS=\$(nproc)
+    echo "Using \$CPUS CPUs for VEP"
 
     vep -i ${uniq_cnvs} -o vep_out.tsv\
     -cache\
@@ -121,7 +95,7 @@ process VEP_GRCh37 {
     --offline\
     --force_overwrite\
     --numbers\
-    --fork ${task.cpus}\
+    --fork \$CPUS \
     --overlaps\
     --canonical\
     --max_sv_size 100000000\
@@ -136,16 +110,14 @@ process VEP_GRCh37 {
 }
 
 
-// Process to build a gene database by integrating VEP annotations, gnomAD constraints variable LOEUF, 
-// and transcript metadata. Outputs a compressed Parquet file with genome version metadata.
-
+// Integrates VEP output, gnomAD constraints (LOEUF), and transcript metadata.
+// Produces a compressed Parquet file containing genome-version metadata.
 process buildGeneDB {
 
     input:
     path vep_out
     path gnomad_constraints
     path transcript_metadata
-    path region_overlap
     val genome_version
 
     output:
@@ -179,31 +151,23 @@ process buildGeneDB {
                         FROM read_parquet(${transcript_metadata}) AS tbl_transcript
                         RIGHT JOIN read_parquet('tmp_gene_constraints.parquet') AS geneDB
                         USING (Transcript_ID)
-                ) TO "tmp_transcript_metadata.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
+                ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
     "
 
-    
-    # Adding Overlap Region
-    duckdb -c " COPY (
-                        SELECT geneDB.*, tbl_region_overlap.* EXCLUDE(CNV_ID),
-                        -- Extract Chr from CNV_ID by taking substring before first '_'
-                        SUBSTR(CNV_ID, 1, INSTR(CNV_ID || '_', '_') - 1) AS Chr
-                        FROM read_csv_auto('${region_overlap}', delim='\\t', header=true) AS tbl_region_overlap
-                        RIGHT JOIN read_parquet('tmp_transcript_metadata.parquet') AS geneDB
-                        USING (CNV_ID)
-                ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD', KV_METADATA {genome_version : \'${genome_version}\'});
-    "
     """
 }
 
 
 
 
+// ---------------------------
+// Workflow: VEP_ANNOTATE
+// ---------------------------
+// Chooses genome assembly-specific VEP process, then builds gene database.
 workflow VEP_ANNOTATE {
     take:
-    cnv_ch
+    uniq_cnvs
     genome_version
-    genomic_regions
     vep_cache
     gnomad_sv
     gnomad_constraints
@@ -211,21 +175,19 @@ workflow VEP_ANNOTATE {
 
     main:
 
-    identifyUniqCNV(cnv_ch)
-
     if(genome_version == "GRCh38"){
-        tbl_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh38.parquet")
-        VEP_GRCh38(identifyUniqCNV.out, vep_cache, file(gnomad_sv) )
+        transcript_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh38.parquet")
+        VEP_GRCh38(uniq_cnvs, vep_cache, file(gnomad_sv) )
         vep_ch = VEP_GRCh38.out.results
+        
     } else if(genome_version == "GRCh37") {
-        tbl_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh37.parquet")
-        VEP_GRCh37(identifyUniqCNV.out, vep_cache, file(gnomad_sv))
+        transcript_metadata = Channel.fromPath("${projectDir}/resources/Transcript_Metadata/transcriptDB_GRCh37.parquet")
+        VEP_GRCh37(uniq_cnvs, vep_cache, file(gnomad_sv))
         vep_ch = VEP_GRCh37.out.results
     }
 
-    computeOverlapRegion(identifyUniqCNV.out, genome_version, genomic_regions)
+    db = buildGeneDB(vep_ch, gnomad_constraints, transcript_metadata, genome_version)
 
-    db = buildGeneDB(vep_ch, gnomad_constraints, tbl_metadata, computeOverlapRegion.out, genome_version)
     emit:
     db
 }

@@ -1,9 +1,30 @@
 #!/usr/bin/env nextflow
 
+/*
+CNV_DB_Builder Nextflow Workflow
+--------------------------------
+This workflow performs the following steps:
+
+1. Identify unique CNVs to reduce redundant queries for VEP annotation.
+2. Compute overlap of CNVs with genomic regions.
+3. Build a CNV database (Parquet format) combining CNV data with region annotations.
+4. Annotate CNVs using VEP (Variant Effect Predictor) and generate LOEUF reports.
+5. Produce summary PDFs for CNV and gene data.
+6. Generate a run summary including duration, input, and output info.
+
+Requirements:
+- Nextflow DSL2
+- Python scripts: prepare_cnvs_vep.py, add_regions_overlap.sh, format_overlap.sh, merge_cnv_with_region.py, pdf_dictionnary.py
+- Polars library for Python
+- VEP cache directory
+*/
+
+nextflow.enable.dsl=2
 nextflow.preview.output = true
 nextflow.enable.moduleBinaries = true
 
-//default VEP dir following install script
+
+// Default VEP dir following install script
 params.vep_cache = "${projectDir}/resources"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
 params.gnomad_dir = "${params.vep_cache}/homo_sapiens" 
@@ -12,6 +33,7 @@ def gnomad_AF
 def gnomad_constraints = "${params.vep_cache}/ressources_LOEUF/gnomad.v4.1.constraint_metrics.tsv"
 
 
+// Select appropriate gnomAD file based on genome version
 switch (params.genome_version) {
     case "GRCh38":
         gnomad_AF = "${params.vep_cache}/ressources_gnomAD/gnomad.v4.1.sv.sites.vcf.bgz"
@@ -24,29 +46,80 @@ switch (params.genome_version) {
 }
 
 
+// Include external modules for VEP annotation and LOEUF report generation
 include { VEP_ANNOTATE } from './modules/vep_annotate'
+include { LOEUF_REPORT } from './modules/loeuf_report'
 
 
+// It extracts unique CNV coordinates to reduce redundant queries
+process identifyUniqCNV {
+    label 'quick'
+    
+    input:
+    path cnvs 
+
+    output:
+    path "uniq_cnvs.bed"
+
+    script:
+    """
+    prepare_cnvs_vep.py ${cnvs} "uniq_cnvs.bed"
+    """
+}
+
+
+
+// Compute overlap of CNVs with genomic regions and add CNV_ID
+process computeOverlapRegion {    
+    label 'quick'
+
+    input:
+    path uniq_cnvs
+    val genomic_regions
+    path regions_file 
+
+    output:
+    path "CNVs_overlap_region_with_CNV_ID.tsv"
+
+    script:
+    """
+    # Add a SampleID column with value 'uniq' to the CNVs input file required for the script to run
+    awk -v sample="uniq" \
+    'BEGIN{OFS="\\t"; print "SampleID\\tChr\\tStart\\tEnd\\tType\\tStrand"} {print sample, \$0}' ${uniq_cnvs} > uniq_cnvs_with_sample.tsv
+
+    # Run custom script to add overlap information between CNVs and genomic regions
+    add_regions_overlap.sh uniq_cnvs_with_sample.tsv ${regions_file} ${genomic_regions} "CNVs_with_genomic_regions_overlap.tsv"
+
+    # Format overlap output to add a CNV_ID column for unique CNV identification and keep only _Overlap columns
+    format_overlap.sh "CNVs_with_genomic_regions_overlap.tsv" "CNVs_overlap_region_with_CNV_ID.tsv"
+    """
+}
+
+
+// Merge CNV dataset with region overlaps to build CNV database
 process buildCnvDB {
     label 'quick'
 
     input:
     path cnvs
+    path region_overlap
 
     output:
     path "cnvDB.parquet"
 
     script:
     """
-    cnv_db_builder_lite.py ${cnvs} cnvDB.parquet
+    # Adding Overlap Region
+    merge_cnv_with_region.py ${cnvs} ${region_overlap} cnvDB.parquet
     """
 }
 
 
+// Generate summary PDFs from Parquet files
 process produceSummaryPDF {
 
     memory {
-        // Read from /proc/meminfo (Linux)
+        // Dynamically allocate memory based on system total
         def memKB = new File('/proc/meminfo')
             .readLines()
             .find { it.startsWith('MemTotal:') }
@@ -54,18 +127,19 @@ process produceSummaryPDF {
         return (memKB / 1024 / 1024).toInteger().GB
     }
     input:
-    path cnvDB_parquet
+    path parquet_input
 
     output:
-    path "cnvDB_dictionary.pdf"
+    path "*_dictionary.pdf"
 
     script:
     """
-    pdf_dictionnary.py ${cnvDB_parquet} ${task.cpus} ${task.memory}
+    pdf_dictionnary.py ${parquet_input} ${task.cpus} ${task.memory}
     """
 }
 
 
+// Build a launch summary file with workflow metadata and timing
 process buildSummary {
     label 'quick'
     
@@ -116,47 +190,93 @@ process buildSummary {
     """
 }
 
+
+
+// --- Sub-workflows for producing PDFs ---
+workflow producePDFWorkflowCNV {
+    take:
+        input_ch
+
+    main:
+        pdf_ch = produceSummaryPDF(input_ch)
+
+    emit:
+        pdf_ch
+}
+
+workflow producePDFWorkflowGene {
+    take:
+        input_ch
+
+    main:
+        pdf_ch = produceSummaryPDF(input_ch)
+
+    emit:
+        pdf_ch
+}
+
+// --- Main Workflow ---
+// This is the core pipeline execution section, orchestrating the CNV DB building, annotation, and reporting.
+
 workflow {
+    // Log basic configuration
     log.info "Using genome version: ${params.genome_version}"
     log.info "gnomAD AF file: ${gnomad_AF}"
     log.info "gnomAD constraint file: ${gnomad_constraints}"
 
-    main:
-        //gnomad    = file( projectDir / "resources" / params.genome_version / "gnomad.v*sv.sites.vcf.bgz")
-    
-        cnvs_ch   = Channel.fromPath(file(params.cnvs))
+    main:    
+        // Load the input CNV file(s) into a Nextflow channel
+        cnvs_ch = Channel.fromPath(file(params.cnvs))
 
-        tag_file_size = cnvs_ch.map { file ->
-            def sizeGB = file.size() / 1_073_741_824
-            sizeGB > 2 ? 'LargeFile' : 'SmallFile'
-        }
+        // Step 1: Identify unique CNVs to reduce redundancy before annotation
+        uniq_cnv_ch = identifyUniqCNV(cnvs_ch)
 
-        VEP_ANNOTATE (  cnvs_ch, 
-                        params.genome_version,
-                        params.genomic_regions, 
-                        params.vep_cache, 
-                        gnomad_AF,
-                        gnomad_constraints )
+        // Step 2: Compute overlaps of CNVs with genomic regions
+        computeOverlapRegion(uniq_cnv_ch, params.genome_version, params.genomic_regions)
+
+        // Step 3: Merge CNVs with overlap information into a CNV database (Parquet format)
+        buildCnvDB(cnvs_ch, computeOverlapRegion.out)
+
+        // Step 4: Annotate CNVs using VEP (Variant Effect Predictor)
+        VEP_ANNOTATE(
+            uniq_cnv_ch,
+            params.genome_version,
+            params.vep_cache, 
+            gnomad_AF,
+            gnomad_constraints
+        )
+
+        // Step 5: Generate LOEUF-related figure using CNV DB and VEP annotation results
+        LOEUF_REPORT(
+            gnomad_constraints,
+            buildCnvDB.out,
+            VEP_ANNOTATE.out
+        )
         
-        buildCnvDB    ( cnvs_ch )
-
+        // Step 6: Produce PDF reports for CNV and gene annotation results
+        pdf_cnv_ch = producePDFWorkflowCNV(buildCnvDB.out)
+        pdf_gene_ch = producePDFWorkflowGene(VEP_ANNOTATE.out)
         
-        produceSummaryPDF (  buildCnvDB.out )
-        
-        buildSummary  (params.cohort_tag,
-                        params.cnvs,
-                        params.genome_version,
-                        produceSummaryPDF.out )
+        // Step 7: Build a general summary report for the workflow run
+        buildSummary(
+            params.cohort_tag,
+            params.cnvs,
+            params.genome_version,
+            pdf_cnv_ch
+        )
 
+    // --- Publish outputs ---
     publish:
-        cnv_db       = buildCnvDB.out
-        gene_db      = VEP_ANNOTATE.out
-        summary      = buildSummary.out
-        pdf_summary  = produceSummaryPDF.out
-
-
+        cnv_db       = buildCnvDB.out          // Final CNV database
+        gene_db      = VEP_ANNOTATE.out        // Annotated gene database
+        summary      = buildSummary.out        // General workflow summary
+        pdf_cnv      = pdf_cnv_ch              // CNV PDF report
+        pdf_gene     = pdf_gene_ch             // Gene annotation PDF report
+        loeuf_figure = LOEUF_REPORT.out        // LOEUF figures
 }
 
+
+// --- Output Sections ---
 output {
     cnv_db {
         mode 'copy'
@@ -168,14 +288,23 @@ output {
         path "${params.cohort_tag}/"
     }
 
-    pdf_summary {
+    pdf_gene {
         mode 'copy'
-        path "${params.cohort_tag}/docs/"
+        path "${params.cohort_tag}/docs"
+    }
+
+    pdf_cnv {
+        mode 'copy'
+        path "${params.cohort_tag}/docs"
     }
 
     summary {
         mode 'copy'
         path "${params.cohort_tag}/docs/"
     }
-    
+
+    loeuf_figure {
+        mode 'copy'
+        path "${params.cohort_tag}/docs/"
+    }
 }

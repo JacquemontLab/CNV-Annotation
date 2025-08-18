@@ -18,12 +18,22 @@ erDiagram
 
 Where TYPE is a string that is either "DEL" or "DUP". Header names are optional while positioning is not. All other columns are passed over to the output.
 
-### Dependencies 
- - python 3.13+
- - polars 
- - duckdb 
- - vep 113
- - Nextflow 25.04.2 
+
+### Dependencies
+
+The following software and packages are required to run the CNV-DB-Builder pipeline:
+
+* **Python** 3.13+
+* **polars** (Python library for DataFrames)
+* **duckdb** (Python library and CLI)
+* **VEP** 113 (Variant Effect Predictor)
+* **Nextflow** 25.04.2
+
+All dependencies can be installed automatically using the provided installation script:
+
+```bash
+./INSTALL.sh
+```
 
 
 ### Output
@@ -39,7 +49,8 @@ Minimally, there are two output tables:
 |int        | Start              | Chromosome start position. Ideally coordinates should match ensembl in that they are one-based and inclusive.|
 |int        | End                | Chromosome End position.
 |string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
-|...| *__INPUT COLUMNS__* |                           |
+|...| *__INPUT COLUMNS__* |                           |	
+|float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions from UCSC.         |	
 
 
 #### geneDB.parquet
@@ -62,7 +73,6 @@ Minimally, there are two output tables:
 | int       | Transcript_Start       | Genomic coordinate where the **transcript** starts (1-based, inclusive)                                   |	
 | int       | Transcript_End         | Genomic coordinate where the **transcript** ends (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript                                                                         |	
-|float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and segmental duplication regions.         |	
 
 
 

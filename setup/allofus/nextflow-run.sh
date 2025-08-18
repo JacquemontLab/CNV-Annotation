@@ -7,14 +7,16 @@
 # Any additional columns present will be preserved and passed through.
 
 
-NXF_VER=25.04.2
 export NXF_OFFLINE=true
 
 cnv_input_file=$1
 
-nextflow run main.nf --cnvs "$cnv_input_file" \
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+nextflow run ${SCRIPT_DIR}/../../main.nf --cnvs "$cnv_input_file" \
     --genome_version "GRCh38" \
     --cohort_tag "AllOfUs" \
-    -c setup/allofus/aou.config \
+    -c ${SCRIPT_DIR}/allofus.config \
     -with-report report.html \
     -resume
