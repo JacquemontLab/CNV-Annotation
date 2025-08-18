@@ -81,9 +81,6 @@ if missing:
     sys.exit(f"LOEUF file missing columns: {', '.join(missing)}")
 
 required_cnv_cols = {"SampleID", "Gene_ID"}
-if args.overlap_col:
-    required_cnv_cols.add(args.overlap_col)
-
 missing = required_cnv_cols - set(cnv_df.columns)
 if missing:
     sys.exit(f"CNV file missing columns: {', '.join(missing)}")
@@ -152,7 +149,7 @@ def compute_window_stats(filter_condition="1=1", group_name="All CNVs", genes_pe
 # Compute stats
 # -----------------------------
 plot_data = compute_window_stats(genes_per_window=args.window)
-if args.overlap_col:
+if args.overlap_col in cnv_df.columns:
     cond = f'"{args.overlap_col}" >= {args.threshold}'
     group_name = f"{args.overlap_col} >= {args.threshold}"
     high_stats = compute_window_stats(filter_condition=cond, group_name=group_name,genes_per_window=args.window)
