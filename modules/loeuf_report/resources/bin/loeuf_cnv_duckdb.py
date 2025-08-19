@@ -148,18 +148,26 @@ def compute_window_stats(filter_condition="1=1", group_name="All CNVs", genes_pe
 # -----------------------------
 # Compute stats
 # -----------------------------
+
 plot_data = compute_window_stats(genes_per_window=args.window)
+
+# Stats for filtered CNVs (overlap threshold + problematic regions)
 if args.overlap_col in cnv_df.columns:
-    cond = f'"{args.overlap_col}" >= {args.threshold}'
-    group_name = f"{args.overlap_col} >= {args.threshold}"
-    high_stats = compute_window_stats(filter_condition=cond, group_name=group_name,genes_per_window=args.window)
-    plot_data = pd.concat([plot_data, high_stats], ignore_index=True)
+    cond = f'"{args.overlap_col}" >= {args.threshold} AND "problematic_regions_Overlap" < 0.5'
+    group_name = f'{args.overlap_col} >= {args.threshold} \n problematic_regions_Overlap < 0.5'
+    filtered_stats = compute_window_stats(filter_condition=cond, group_name=group_name, genes_per_window=args.window)
+    plot_data = pd.concat([plot_data, filtered_stats], ignore_index=True)
+
 
 print(plot_data)
+
 # -----------------------------
-# Plot
+# Plot two figures in the same PNG
 # -----------------------------
-fig, ax = plt.subplots(figsize=(5, 4.2))
+fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(6, 10))  # two rows
+
+# --- Top plot: all CNVs ---
+ax = axes[0]
 for group, df in plot_data.groupby("group_name"):
     ax.errorbar(df["mean_loeuf"], df["mean_freq"], yerr=df["sd_freq"],
                 label=group, capsize=3, marker='o', linestyle='-')
@@ -170,6 +178,24 @@ ax.set_ylabel("Mean Observation per gene per 1k ind")
 ax.set_xlim(0, 2)
 ax.set_ylim(0, None)
 ax.legend()
+
+
+# --- Bottom plot: filtered CNVs ---
+if args.overlap_col in cnv_df.columns:
+    ax = axes[1]
+    filtered_data = plot_data[plot_data["group_name"] == group_name]
+    
+    ax.errorbar(filtered_data["mean_loeuf"], filtered_data["mean_freq"], yerr=filtered_data["sd_freq"],
+                label=group_name, capsize=3, marker='o', linestyle='-', color='tab:orange')
+    ax.set_title(f"Window size {args.window}")
+    ax.set_xlabel("LOEUF")
+    ax.set_ylabel("Mean Obs per gene per 1k ind")
+    ax.set_xlim(0, 2)
+    ax.set_ylim(0, None)
+    ax.legend()
+
+
 plt.tight_layout()
 plt.savefig(args.output, dpi=100)
-print(f"Plot saved to: {args.output}")
+print(f"Combined plot saved to: {args.output}")
+
