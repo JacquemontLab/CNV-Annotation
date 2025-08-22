@@ -26,7 +26,7 @@ with open(cnv_file) as f:
     header = f.readline().strip().split("\t")
 col_map = {name.lower(): name for name in header}
 
-df = pl.read_csv(
+df = pl.scan_csv(
     cnv_file,
     separator="\t",
     infer_schema_length=1000000,
@@ -44,7 +44,7 @@ df = df.with_columns(
 )
 
 # --- Load overlap file ---
-region_df = pl.read_csv(
+region_df = pl.scan_csv(
     region_file,
     separator="\t",
     infer_schema_length=1000000
@@ -59,4 +59,4 @@ order = (["CNV_ID", "SampleID"] +
 df = df.select(order)
 
 # --- Save ---
-df.write_parquet(output, compression="zstd")
+df.sink_parquet(output, compression="zstd")
