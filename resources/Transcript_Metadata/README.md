@@ -24,6 +24,11 @@ duckdb -c "
     UPDATE tbl 
     SET Transcript_biotype = REGEXP_EXTRACT(column8, 'transcript_biotype \"(.*?)\"', 1);
 
+    -- Extract transcript_source
+    ALTER TABLE tbl ADD COLUMN Transcript_source VARCHAR;
+    UPDATE tbl 
+    SET Transcript_source = REGEXP_EXTRACT(column8, 'transcript_source \"(.*?)\"', 1);
+
     -- Count exons per Transcript_ID
     CREATE TABLE exon_counts AS
     SELECT Transcript_ID, COUNT(*) AS exon_count
@@ -40,7 +45,8 @@ duckdb -c "
             tbl.Transcript_ID,
             tbl.Gene_ID,
             COALESCE(exon_counts.exon_count, 0) AS Exon_count,
-            CASE WHEN Transcript_biotype = 'protein_coding' THEN 1 ELSE 0 END AS Is_coding
+            CASE WHEN Transcript_biotype = 'protein_coding' THEN 1 ELSE 0 END AS Is_coding,
+            tbl.Transcript_source
         FROM tbl
         LEFT JOIN exon_counts USING (Transcript_ID)
         WHERE column2 = 'transcript'
@@ -72,6 +78,11 @@ duckdb -c "
     UPDATE tbl 
     SET Transcript_biotype = REGEXP_EXTRACT(column8, 'transcript_biotype \"(.*?)\"', 1);
 
+    -- Extract transcript_source
+    ALTER TABLE tbl ADD COLUMN Transcript_source VARCHAR;
+    UPDATE tbl 
+    SET Transcript_source = REGEXP_EXTRACT(column8, 'transcript_source \"(.*?)\"', 1);
+
     -- Count exons per Transcript_ID
     CREATE TABLE exon_counts AS
     SELECT Transcript_ID, COUNT(*) AS exon_count
@@ -88,7 +99,8 @@ duckdb -c "
             tbl.Transcript_ID,
             tbl.Gene_ID,
             COALESCE(exon_counts.exon_count, 0) AS Exon_count,
-            CASE WHEN Transcript_biotype = 'protein_coding' THEN 1 ELSE 0 END AS Is_coding
+            CASE WHEN Transcript_biotype = 'protein_coding' THEN 1 ELSE 0 END AS Is_coding,
+            tbl.Transcript_source
         FROM tbl
         LEFT JOIN exon_counts USING (Transcript_ID)
         WHERE column2 = 'transcript'

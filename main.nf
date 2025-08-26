@@ -27,6 +27,7 @@ nextflow.enable.moduleBinaries = true
 // Default VEP dir following install script
 params.vep_cache = "${projectDir}/resources"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
+params.recurrent_path = "${projectDir}/resources/rCNV/geneset_per_rCNV.tsv"
 params.gnomad_dir = "${params.vep_cache}/homo_sapiens" 
 
 def gnomad_AF
@@ -49,6 +50,7 @@ switch (params.genome_version) {
 // Include external modules for VEP annotation and LOEUF report generation
 include { VEP_ANNOTATE } from './modules/vep_annotate'
 include { LOEUF_REPORT } from './modules/loeuf_report'
+include { RCNV_ANNOTATION } from './modules/rCNV_annotation'
 
 
 // It extracts unique CNV coordinates to reduce redundant queries
@@ -105,12 +107,12 @@ process buildCnvDB {
     path region_overlap
 
     output:
-    path "cnvDB.parquet"
+    path "cnvDB_region.parquet"
 
     script:
     """
     # Adding Overlap Region
-    merge_cnv_with_region.py ${cnvs} ${region_overlap} cnvDB.parquet
+    merge_cnv_with_region.py ${cnvs} ${region_overlap} cnvDB_region.parquet
     """
 }
 
@@ -255,6 +257,12 @@ workflow {
             VEP_ANNOTATE.out
         )
         
+        RCNV_ANNOTATION(
+            buildCnvDB.out,
+            VEP_ANNOTATE.out,
+            params.recurrent_path,
+            params.genome_version)
+
         // Step 6: Produce PDF reports for CNV and gene annotation results
         pdf_cnv_ch = producePDFWorkflowCNV(buildCnvDB.out)
         pdf_gene_ch = producePDFWorkflowGene(VEP_ANNOTATE.out)
@@ -269,7 +277,7 @@ workflow {
 
     // --- Publish outputs ---
     publish:
-        cnv_db       = buildCnvDB.out          // Final CNV database
+        cnv_db       = RCNV_ANNOTATION.out.cnvDB_rCNV          // Final CNV database
         gene_db      = VEP_ANNOTATE.out        // Annotated gene database
         summary      = buildSummary.out        // General workflow summary
         pdf_cnv      = pdf_cnv_ch              // CNV PDF report
