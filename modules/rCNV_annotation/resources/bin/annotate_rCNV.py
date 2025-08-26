@@ -1,5 +1,37 @@
 #!/usr/bin/env python3
- 
+"""
+annotate_rCNV.py
+
+Purpose:
+    Annotates CNV (Copy Number Variation) data with gene information 
+    and flags recurrent CNVs using DuckDB for in-memory analytics.
+
+Functionality:
+    1. Loads CNV, gene, and recurrent CNV datasets (TSV, CSV, or Parquet).
+    2. Explodes geneDB to only include canonical exons overlapping CNVs.
+    3. Explodes recurrent CNV gene sets into individual genes.
+    4. Filters geneDB to retain only genes present in recurrent CNVs.
+    5. Counts matches between CNVs and recurrent CNVs.
+    6. Identifies full matches and assigns rCNV_ID with type suffix.
+    7. Generates a flagged CNV database with annotated recurrent CNVs.
+    8. Computes sample counts per recurrent CNV for downstream analysis.
+
+Inputs:
+    --geneDB_path: Gene annotation database file (TSV, CSV, or Parquet)
+    --cnvDB_path: CNV database file (TSV, CSV, or Parquet)
+    --recurrent_path: Recurrent CNV gene set file (TSV)
+    --genome_version: Genome build to use ('GRCh37' or 'GRCh38')
+
+Outputs:
+    --cnvDB_flagged_parquet: Flagged CNV database (Parquet)
+    --recurrent_sample_counts: Sample counts per recurrent CNV (TSV)
+
+Author:
+    Florian Bénitière
+Date:
+    2025-08-26
+"""
+
 import duckdb
 import argparse
 import os
