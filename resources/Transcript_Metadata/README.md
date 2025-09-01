@@ -19,6 +19,11 @@ duckdb -c "
     UPDATE tbl 
     SET Gene_ID = REGEXP_EXTRACT(column8, 'gene_id \"(.*?)\"', 1);
 
+    -- Add gene_name by extracting it from column8
+    ALTER TABLE tbl ADD COLUMN Gene_Name VARCHAR;
+    UPDATE tbl 
+    SET Gene_Name = REGEXP_EXTRACT(column8, 'gene_name \"(.*?)\"', 1);
+
     -- Extract transcript_biotype
     ALTER TABLE tbl ADD COLUMN Transcript_biotype VARCHAR;
     UPDATE tbl 
@@ -42,11 +47,12 @@ duckdb -c "
             column0::VARCHAR AS Chr,
             column3::INTEGER AS Start,
             column4::INTEGER AS Stop,
-            tbl.Transcript_ID,
             tbl.Gene_ID,
-            COALESCE(exon_counts.exon_count, 0) AS Exon_count,
-            CASE WHEN Transcript_biotype = 'protein_coding' THEN 1 ELSE 0 END AS Is_coding,
-            tbl.Transcript_source
+            tbl.Gene_Name,
+            tbl.Transcript_ID,
+            tbl.Transcript_biotype,
+            tbl.Transcript_source,
+            COALESCE(exon_counts.exon_count, 0) AS Exon_count
         FROM tbl
         LEFT JOIN exon_counts USING (Transcript_ID)
         WHERE column2 = 'transcript'
@@ -73,6 +79,11 @@ duckdb -c "
     UPDATE tbl 
     SET Gene_ID = REGEXP_EXTRACT(column8, 'gene_id \"(.*?)\"', 1);
 
+    -- Add gene_name by extracting it from column8
+    ALTER TABLE tbl ADD COLUMN Gene_Name VARCHAR;
+    UPDATE tbl 
+    SET Gene_Name = REGEXP_EXTRACT(column8, 'gene_name \"(.*?)\"', 1);
+
     -- Extract transcript_biotype
     ALTER TABLE tbl ADD COLUMN Transcript_biotype VARCHAR;
     UPDATE tbl 
@@ -96,17 +107,17 @@ duckdb -c "
             column0::VARCHAR AS Chr,
             column3::INTEGER AS Start,
             column4::INTEGER AS Stop,
-            tbl.Transcript_ID,
             tbl.Gene_ID,
-            COALESCE(exon_counts.exon_count, 0) AS Exon_count,
-            CASE WHEN Transcript_biotype = 'protein_coding' THEN 1 ELSE 0 END AS Is_coding,
-            tbl.Transcript_source
+            tbl.Gene_Name,
+            tbl.Transcript_ID,
+            tbl.Transcript_biotype,
+            tbl.Transcript_source,
+            COALESCE(exon_counts.exon_count, 0) AS Exon_count
         FROM tbl
         LEFT JOIN exon_counts USING (Transcript_ID)
         WHERE column2 = 'transcript'
     ) TO 'transcriptDB_GRCh37.parquet';
 "
-
 
 ```
 

@@ -168,7 +168,7 @@ def make_transcript_overlap(df):
                       and the 'OverlapPC' column removed.
     """
     df = df.with_columns(
-        (pl.col("OverlapPC").cast(pl.Float32) / 100 ).alias("Transcript_BP_Overlap")
+        (pl.col("OverlapPC").cast(pl.Float32) / 100 ).alias("Transcript_Overlap")
         ).drop("OverlapPC")
     return df
 

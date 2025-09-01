@@ -147,6 +147,7 @@ process buildGeneDB {
     duckdb -c "    COPY (
                     SELECT 
                        geneDB.*,
+                        tbl_transcript.Gene_Name AS Gene_Name,
                         tbl_transcript.Start AS Transcript_Start,
                         tbl_transcript.Stop AS Transcript_Stop,
                         tbl_transcript.Exon_count AS Exon_count
