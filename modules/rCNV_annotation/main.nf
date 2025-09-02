@@ -60,18 +60,3 @@ workflow RCNV_ANNOTATION {
     cnvDB_rCNV
     rCNV_sample_counts
 }
-
-
-// workflow LOEUF_REPORT {
-//     take:
-//     loeuf_metadata
-//     cnvDB
-//     geneDB
-
-//     main:
-
-//     loeuf_report(loeuf_metadata, merge_cnv_gene(cnvDB, geneDB))
-
-//     emit:
-//     loeuf_report_png = loeuf_report.out.figure
-// }

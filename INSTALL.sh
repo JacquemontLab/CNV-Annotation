@@ -214,11 +214,11 @@ download_and_index_vcf() {
 }
 
 
-# GnomAD v4.1 (hg38)
+# GnomAD v4.1 (GRCh38)
 download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/gnomad.v4.1.cnv.all.vcf.gz"
 download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/genome_sv/gnomad.v4.1.sv.sites.vcf.gz"
 
-# GnomAD v2.1 (hg19)
+# GnomAD v2.1 (GRCh37)
 download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz"
 
 popd > /dev/null  # Exit ressources_gnomAD
