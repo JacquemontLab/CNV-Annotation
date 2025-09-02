@@ -136,7 +136,7 @@ process produceSummaryPDF {
 
     script:
     """
-    pdf_dictionnary.py ${parquet_input} ${task.cpus} ${task.memory}
+    pdf_dictionary.py ${parquet_input} ${task.cpus} ${task.memory}
     """
 }
 

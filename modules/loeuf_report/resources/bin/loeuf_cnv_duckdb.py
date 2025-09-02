@@ -28,7 +28,9 @@ Output:
 """
 
 import duckdb
+import pyarrow
 import pandas as pd
+import polars as pl
 import matplotlib.pyplot as plt
 import argparse
 import os
@@ -47,7 +49,7 @@ parser.add_argument("-o", "--output", default="loeuf_cnv_plot.png", help="Output
 args = parser.parse_args()
 
 # -----------------------------
-# Check files exist            
+# Check files exist
 # -----------------------------
 if not os.path.exists(args.loeuf):
     sys.exit(f"LOEUF file not found: {args.loeuf}")
@@ -62,43 +64,50 @@ con = duckdb.connect()
 # -----------------------------
 # Load LOEUF and CNV directly (Parquet or TSV)
 # -----------------------------
-def load_table(con, path):
+def load_table(path):
     if path.endswith(".parquet"):
-        return con.execute(f"SELECT * FROM read_parquet('{path}')").df()
+        return pl.scan_parquet(f"{path}")
     else:
         # default TSV
-        return con.execute(f"SELECT * FROM read_csv_auto('{path}', delim='\t', header=true)").df()
+        return pl.scan_csv(f"{path}",separator = "\t", infer_schema_length=None)
 
-loeuf = load_table(con, args.loeuf)
-cnv_df = load_table(con, args.cnv)
+loeuf = load_table(args.loeuf)
+cnv_df = load_table(args.cnv)
 
 # -----------------------------
 # Check required columns
 # -----------------------------
 required_loeuf_cols = {"mane_select", "gene_id", "lof.oe_ci.upper"}
-missing = required_loeuf_cols - set(loeuf.columns)
+missing = required_loeuf_cols - set(loeuf.collect_schema().names())
+
 if missing:
-    sys.exit(f"LOEUF file missing columns: {', '.join(missing)}")
+     sys.exit(f"LOEUF file missing columns: {', '.join(missing)}")
 
 required_cnv_cols = {"SampleID", "Gene_ID"}
-missing = required_cnv_cols - set(cnv_df.columns)
+missing = required_cnv_cols - set(cnv_df.collect_schema().names())
 if missing:
-    sys.exit(f"CNV file missing columns: {', '.join(missing)}")
+     sys.exit(f"CNV file missing columns: {', '.join(missing)}")
 
 # -----------------------------
 # Filter LOEUF
 # -----------------------------
-loeuf = loeuf[(loeuf["canonical"] == True) & loeuf["gene_id"].str.startswith("ENS")]
-loeuf = loeuf[loeuf["lof.oe_ci.upper"] != "NA"]
 
+loeuf = loeuf.filter((pl.col("canonical") == True) &
+                     (pl.col("gene_id").str.starts_with("ENS"))
+                    )
+#convert LOEUF column into float
+loeuf = loeuf.with_columns(pl.col("lof.oe_ci.upper").replace("NA", None).cast(pl.Float64).alias("lof.oe_ci.upper"))
 
 # Keep only rows where Exon_overlap > 0
-cnv_df = cnv_df[cnv_df["Exon_Overlap"] > 0]
-# -----------------------------
-# Remove CNV duplicates
-# -----------------------------
-cnv_df = cnv_df.drop_duplicates(subset=["SampleID", "Gene_ID"])
-nb_sample = cnv_df["SampleID"].nunique()
+cnv_df = cnv_df.filter(pl.col("Exon_Overlap") > 0).unique(subset=["SampleID", "Gene_ID"])
+
+#pull number of unique Samples
+nb_sample = (
+    cnv_df
+    .select(pl.col("SampleID").n_unique().alias("nb_sample"))
+    .collect()
+    .item()
+)
 
 # Register for SQL
 con.register("loeuf", loeuf)
@@ -114,7 +123,7 @@ def compute_window_stats(filter_condition="1=1", group_name="All CNVs", genes_pe
         FROM cnv_df
         WHERE {filter_condition}
           AND Gene_ID IN (SELECT gene_id FROM loeuf)
-          GROUP BY Gene_ID
+        GROUP BY Gene_ID
     ),
     merged AS (
         SELECT l.*, COALESCE(freq, 0) AS freq
@@ -149,82 +158,52 @@ def compute_window_stats(filter_condition="1=1", group_name="All CNVs", genes_pe
 # Compute stats
 # -----------------------------
 
+plot_data = compute_window_stats(genes_per_window=args.window)
 
-# Initialiser plot_data vide
-plot_data = pd.DataFrame()
-
-# Stats for all CNVs separately for DEL and DUP
-for cnv_type in ["DEL", "DUP"]:
-    cond = f'"Type" = \'{cnv_type}\''
-    filtered_stats = compute_window_stats(
-        filter_condition=cond,
-        genes_per_window=args.window
-    )
-    filtered_stats["cnv_type"] = cnv_type  # Ajout de la colonne cnv_type
+# Stats for filtered CNVs (overlap threshold + problematic regions)
+if args.overlap_col in cnv_df.columns:
+    cond = f'"{args.overlap_col}" >= {args.threshold} AND "problematic_regions_Overlap" < 0.5'
+    group_name = f'{args.overlap_col} >= {args.threshold} \n problematic_regions_Overlap < 0.5'
+    filtered_stats = compute_window_stats(filter_condition=cond, group_name=group_name, genes_per_window=args.window)
     plot_data = pd.concat([plot_data, filtered_stats], ignore_index=True)
 
-
-# Stats for filtered CNVs (overlap threshold + problematic regions) separately for DEL and DUP
-if args.overlap_col in cnv_df.columns:
-    for cnv_type in ["DEL", "DUP"]:
-        cond = (
-            f'"{args.overlap_col}" >= {args.threshold} AND '
-            f'"problematic_regions_Overlap" < 0.5 AND '
-            f'"Type" = \'{cnv_type}\''
-        )
-        group_name = (
-            f'{args.overlap_col} >= {args.threshold} \n'
-            f'problematic_regions_Overlap < 0.5 '
-        )
-        filtered_stats = compute_window_stats(
-            filter_condition=cond,
-            group_name=group_name,
-            genes_per_window=args.window
-        )
-        filtered_stats["cnv_type"] = cnv_type  # Ajout de la colonne cnv_type
-        plot_data = pd.concat([plot_data, filtered_stats], ignore_index=True)
 
 print(plot_data)
 
 # -----------------------------
 # Plot two figures in the same PNG
 # -----------------------------
+fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(6, 10))  # two rows
+
+# --- Top plot: all CNVs ---
+ax = axes[0]
+for group, df in plot_data.groupby("group_name"):
+    ax.errorbar(df["mean_loeuf"], df["mean_freq"], yerr=df["sd_freq"],
+                label=group, capsize=3, marker='o', linestyle='-')
+
+ax.set_title(f"Window size {args.window}")
+ax.set_xlabel("LOEUF")
+ax.set_ylabel("Mean Observation per gene per 1k ind")
+ax.set_xlim(0, 2)
+ax.set_ylim(0, None)
+ax.legend()
 
 
-fig, axes = plt.subplots(2, 2, figsize=(12, 10))  # 2 rows x 2 cols
-
-cnv_types = ["DEL", "DUP"]
-
-for i, cnv_type in enumerate(cnv_types):
-    # --- Top plot: all CNVs ---
-    ax = axes[0, i]
-    top_data = plot_data[plot_data["cnv_type"] == cnv_type]
-    for group, df in top_data.groupby("group_name"):
-        ax.errorbar(df["mean_loeuf"], df["mean_freq"], yerr=df["sd_freq"],
-                    label=group, capsize=3, marker='o', linestyle='-')
-    ax.set_title(f"All CNVs — {cnv_type}")
+# --- Bottom plot: filtered CNVs ---
+if args.overlap_col in cnv_df.columns:
+    ax = axes[1]
+    filtered_data = plot_data[plot_data["group_name"] == group_name]
+    
+    ax.errorbar(filtered_data["mean_loeuf"], filtered_data["mean_freq"], yerr=filtered_data["sd_freq"],
+                label=group_name, capsize=3, marker='o', linestyle='-', color='tab:orange')
+    ax.set_title(f"Window size {args.window}")
     ax.set_xlabel("LOEUF")
     ax.set_ylabel("Mean Obs per gene per 1k ind")
     ax.set_xlim(0, 2)
     ax.set_ylim(0, None)
-    ax.legend(fontsize=8)
+    ax.legend()
 
-    # --- Bottom plot: filtered CNVs ---
-    ax = axes[1, i]
-    if args.overlap_col in cnv_df.columns:
-        filtered_data = plot_data[
-            (plot_data["group_name"] == group_name) &
-            (plot_data["cnv_type"] == cnv_type)
-        ]
-        ax.errorbar(filtered_data["mean_loeuf"], filtered_data["mean_freq"], yerr=filtered_data["sd_freq"],
-                    label=group, capsize=3, marker='o', linestyle='-', color='tab:orange')
-    ax.set_title(f"Filtered CNVs — {cnv_type}")
-    ax.set_xlabel("LOEUF")
-    ax.set_ylabel("Mean Obs per gene per 1k ind")
-    ax.set_xlim(0, 2)
-    ax.set_ylim(0, None)
-    ax.legend(fontsize=8)
 
 plt.tight_layout()
 plt.savefig(args.output, dpi=100)
-print(f"Combined DEL/DUP plot saved to: {args.output}")
+print(f"Combined plot saved to: {args.output}")
