@@ -252,9 +252,9 @@ workflow {
 
         // Step 5: Generate LOEUF-related figure using CNV DB and VEP annotation results
         LOEUF_REPORT(
-            gnomad_constraints,
-            buildCnvDB.out,
-            VEP_ANNOTATE.out
+            gnomad_constraints, //loeuf_metadata
+            buildCnvDB.out,     //cnvDB
+            VEP_ANNOTATE.out    //geneDB
         )
         
         RCNV_ANNOTATION(
