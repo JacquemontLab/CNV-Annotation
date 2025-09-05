@@ -88,7 +88,7 @@ def make_exon_overlap(df):
             pl.col('EXON')
             .str.split(by="/")
             .list.get(1)
-            .cast(pl.Float32)
+            .cast(pl.Float64)
         ).otherwise(None).alias('exon_sum'),
 
         # splitting exon ranges, we convert to "0" to avoid index errors later
@@ -97,7 +97,7 @@ def make_exon_overlap(df):
             pl.col('exon_range')
             .str.split(by="-")
         ).otherwise(["0"])
-        .cast(pl.List(pl.Float32))
+        .cast(pl.List(pl.Float64))
         .alias('exon_range_split')
     ])
 
@@ -168,7 +168,7 @@ def make_transcript_overlap(df):
                       and the 'OverlapPC' column removed.
     """
     df = df.with_columns(
-        (pl.col("OverlapPC").cast(pl.Float32) / 100 ).alias("Transcript_Overlap")
+        (pl.col("OverlapPC").cast(pl.Float64) / 100 ).alias("Transcript_Overlap")
         ).drop("OverlapPC")
     return df
 
@@ -217,12 +217,12 @@ def make_max_gnomad(df):
             pl.when(
                 pl.col(col).is_null()
             ) 
-            .then(pl.lit(0.0, dtype=pl.Float32))
+            .then(pl.lit(0.0, dtype=pl.Float64))
             # Rows containing string is split, cast to float and the max is extracted
             .otherwise(
                  pl.col(col)
                 .str.split(",")
-                .list.eval(pl.element().cast(pl.Float32))
+                .list.eval(pl.element().cast(pl.Float64))
                 .list.max()
             )
             .alias(col)

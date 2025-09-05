@@ -156,34 +156,40 @@ process buildSummary {
 
     script:
     """
-        # Convert workflow start datetime to epoch seconds
-        start_sec=\$(date -d "${workflow.start}" +%s)
-        # Get current time in epoch seconds
-        end_sec=\$(date +%s)
+    #Grab Git Commit Hash for working version
+    git_version=\$(git log -1 HEAD | grep "commit")
 
-        # Calculate duration in seconds
-        duration=\$(( end_sec - start_sec ))
+    # Convert workflow start datetime to epoch seconds
+    start_sec=\$(date -d "${workflow.start}" +%s)
 
-        # Convert duration to minutes and seconds
-        minutes=\$(( duration / 60 ))
-        seconds=\$(( duration % 60 ))
+    # Get current time in epoch seconds
+    end_sec=\$(date +%s)
 
-       cat <<EOF > launch_report.txt
-       CNV_DB_Builder ${cohort_tag} run summary:
-       run name: ${workflow.runName}
-       version: ${workflow.manifest.version}
-       configs: ${workflow.configFiles}
-       workDir: ${workflow.workDir}
-       input_file: ${cnvs_path}
-       genome_version: ${genome_version}
-       launch_user: ${workflow.userName}
-       start_time: ${workflow.start}
-       duration: \${minutes} minutes and \${seconds} seconds
+    # Calculate duration in seconds
+    duration=\$(( end_sec - start_sec ))
 
-       Command:
-       ${workflow.commandLine}
+    # Convert duration to minutes and seconds
+    minutes=\$(( duration / 60 ))
+    seconds=\$(( duration % 60 ))
 
-    
+    cat <<EOF > launch_report.txt
+    CNV_DB_Builder ${cohort_tag} run summary:
+    run name: ${workflow.runName}
+    version: ${workflow.manifest.version}
+    configs: ${workflow.configFiles}
+    workDir: ${workflow.workDir}
+    input_file: ${cnvs_path}
+    genome_version: ${genome_version}
+    launch_user: ${workflow.userName}
+    start_time: ${workflow.start}
+    duration: \${minutes} minutes and \${seconds} seconds
+
+    Command:
+    ${workflow.commandLine}
+
+    git hash working version:
+    \${git_version}
+
     """
 
     stub:
