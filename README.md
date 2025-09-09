@@ -1,8 +1,8 @@
 [![Jacquemont's Lab Header](img/labheader.png)](https://www.jacquemont-lab.org/)
 
-[Git Repository CNV-DB-Builder](https://github.com/JacquemontLab/CNV-DB-Builder.git)
+[Git Repository CNV-Annotation](https://github.com/JacquemontLab/CNV-Annotation.git)
 
-# CNV-DB-Builder
+# CNV-Annotation
 
 Nextflow pipeline for building a database from a single CNV file. The input that is expected is a TSV file with at least the following columns:
 
@@ -15,9 +15,9 @@ SampleID  Chr  Start  End  Type  [other columns preserved]
 
 ### DAG
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="img/CNV-DB-Builder-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="img/CNV-DB-Builder-lite.png">
-  <img alt="Fallback image description" src="img/CNV-DB-Builder-lite.png" style="max-width:55%; height:auto;">
+  <source media="(prefers-color-scheme: dark)" srcset="img/CNV-Annotation-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="img/CNV-Annotation-lite.png">
+  <img alt="Fallback image description" src="img/CNV-Annotation-lite.png" style="max-width:55%; height:auto;">
 </picture>
 
 
@@ -25,7 +25,7 @@ SampleID  Chr  Start  End  Type  [other columns preserved]
 
 ### Dependencies
 
-The following software and packages are required to run the CNV-DB-Builder pipeline:
+The following software and packages are required to run the CNV-Annotation pipeline:
 
 * **Python** 3.13+
 * **polars** (Python library for DataFrames)
@@ -51,7 +51,7 @@ Users on Compute Canada (CCDB, in the lab) are encouraged to refer directly to t
 #                        SampleID, Chr, Start, End, Type. Additional columns are preserved.
 #   -g <GENOME_VERSION>  Genome build (e.g., GRCh37, GRCh38) to use for annotation.
 #   -c <COHORT_TAG>      Identifier for the cohort (used in annotation and output naming).
-sbatch CNV-DB-Builder/setup/ccdb/annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-DB-Builder
+sbatch CNV-Annotation/setup/ccdb/annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-Annotation
 ```
 
 ### Output
