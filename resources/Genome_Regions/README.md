@@ -50,7 +50,8 @@ https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=2763451842_9nXejNOmv3oAIqSDNs99Cq
 
 
 After downloading every tables :
-
+```bash
 for f in *38.tsv; do tail -n +2 "$f"; done | cut -f1-3 | awk -F'\t' -v OFS='\t' '{print $0, "problematic_regions", "GRCh38"}' > Problematic_GRCh38_regions.tsv
 
 for f in *37.tsv; do tail -n +2 "$f"; done | cut -f1-3 | awk -F'\t' -v OFS='\t' '{print $0, "problematic_regions", "GRCh37"}' > Problematic_GRCh37_regions.tsv
+```

@@ -1,3 +1,18 @@
+# ------------------------------------------------------------------------------
+#
+# Description:
+# This script processes recurrent CNV data from an Excel file and exports
+# CNV regions as BED files for both GRCh37 and GRCh38 genome versions.
+#
+# Main steps:
+# 1. Load the recurrent CNV dataset from Excel.
+# 2. Clean and standardize column names.
+# 3. Parse genomic coordinates (Chr, Start, Stop) for GRCh37 and GRCh38.
+# 4. Extract BED-format columns (Chr, Start, Stop).
+# 5. Save BED files for each genome build.
+# ------------------------------------------------------------------------------
+
+
 library(readxl)
 library(dplyr)
 library(tidyr)
@@ -19,8 +34,6 @@ for(genome_version in c("GRCh37","GRCh38")){
     tidyr::separate({{genome_version}}, into = c("Chr", "range"), sep = ":", remove = FALSE) %>%
     tidyr::separate(range, into = c("Start", "Stop"), sep = "-", remove = TRUE) %>%
     mutate(across(c(Start, Stop), as.numeric))
-  
-  tmp$recurrent_ID <- paste(tmp$Chr, tmp$Start, tmp$Stop, sep="_")
   
   # Select BED columns
   bed <- tmp[, c("Chr", "Start", "Stop")]
