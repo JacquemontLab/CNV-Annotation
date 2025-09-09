@@ -10,7 +10,6 @@ import duckdb
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from tqdm import tqdm
 import os
 from math import floor  # For rounding down numbers
 
@@ -41,7 +40,6 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
 
 
     with PdfPages(output_file) as pdf:
-        with tqdm(total=len(schema)) as pbar:
             for column_name, duck_type, *_ in schema:
                 print(column_name)
                 try:
@@ -65,9 +63,7 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
                         ORDER BY bin_idx
                         """
                         bins_data = con.execute(histogram_query).fetchall()
-                        if not bins_data:
-                            pbar.update(1)
-                            continue
+
 
                         # Convert bucket numbers to midpoints
                         bin_edges = [min_val + (i * (max_val - min_val) / 50) for i in range(51)]
@@ -94,9 +90,7 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
                         LIMIT 20
                         """
                         freq_data = con.execute(freq_query).fetchall()
-                        if not freq_data:
-                            pbar.update(1)
-                            continue
+
                         
                         df_counts = pd.DataFrame(freq_data, columns=[column_name, 'count'])
                         
@@ -132,13 +126,11 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
                         print(f"Not generating for column {column_name}: {e}")
                 except Exception as e:
                     print(f"Error while generating for column {column_name}: {e}")
-                pbar.update(1)
-
 
 if __name__ == "__main__":
     parquet_input = sys.argv[1]
     cpus = int(sys.argv[2])
-    total_memory = int(sys.argv[3])
+    total_memory = int(float(sys.argv[3]))
 
     print(f"[INFO] Input Parquet: {parquet_input}")
     print(f"[INFO] CPUs: {cpus}")

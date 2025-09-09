@@ -136,8 +136,8 @@ mkdir -p "$ENV_DIR"
 python3 -m venv "$ENV_DIR/db-builder-env"
 source "$ENV_DIR/db-builder-env/bin/activate"
 pip install --upgrade pip
-pip install duckdb pandas matplotlib tqdm polars
-echo "✅ Python virtual environment installed in $ENV_DIR/db-builder-env. Be sure to set the path in your .conf file"
+pip install duckdb pandas matplotlib tqdm polars pyarrow
+echo "✅ Python virtual environment installed in $ENV_DIR/db-builder-env. Be sure to source before run."
 deactivate
 
 # --- Install Nextflow ---

@@ -1,4 +1,4 @@
-[![Jacquemont's Lab Header](labheader.png)](https://www.jacquemont-lab.org/)
+[![Jacquemont's Lab Header](img/labheader.png)](https://www.jacquemont-lab.org/)
 
 # CNV-DB-Builder
 
@@ -17,6 +17,15 @@ erDiagram
 ```
 
 Where Type is a string that is either "DEL" or "DUP". All other columns are passed over to the output.
+
+### DAG
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/CNV-DB-Builder-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="img/CNV-DB-Builder-lite.png">
+  <img alt="Fallback image description" src="img/CNV-DB-Builder-lite.png" style="max-width:55%; height:auto;">
+</picture>
+
+
 
 
 ### Dependencies
