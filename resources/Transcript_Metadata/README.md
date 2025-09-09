@@ -1,6 +1,7 @@
 
 # Getting Transcript Metadata from GTF file:
-```
+
+```bash
 curl https://ftp.ensembl.org/pub/release-113/gtf/homo_sapiens/Homo_sapiens.GRCh38.113.gtf.gz > Homo_sapiens.GRCh38.113.gtf.gz
 
 duckdb -c "

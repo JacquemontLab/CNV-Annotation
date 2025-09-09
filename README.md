@@ -1,22 +1,17 @@
 [![Jacquemont's Lab Header](labheader.png)](https://www.jacquemont-lab.org/)
 
+[Git Repository CNV-DB-Builder](https://github.com/JacquemontLab/CNV-DB-Builder.git)
+
 # CNV-DB-Builder
 
 Nextflow pipeline for building a database from a single CNV file. The input that is expected is a TSV file with at least the following columns:
 
-```mermaid 
-erDiagram
-    direction TB
-    CNV-Input{
-        string SampleID
-        string Chr
-        int Start
-        int End 
-        string Type
-    }
+```
+SampleID  Chr  Start  End  Type  [other columns preserved]
 ```
 
-Where Type is a string that is either "DEL" or "DUP". All other columns are passed over to the output.
+`Type` is a string that must be either `"DEL"` or `"DUP"`. All other columns are preserved in the output.
+`Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.
 
 
 ### Dependencies
@@ -35,11 +30,25 @@ All dependencies can be installed automatically using the provided installation 
 ./INSTALL.sh
 ```
 
+### Running the CNV annotation pipeline
+
+Users on Compute Canada (CCDB, in the lab) are encouraged to refer directly to the script in setup/ccdb/annotate_cnv_sbatch.sh.
+
+```bash
+
+# Inputs:
+#   -d <GIT_DIR>        Path to the root of the repository containing `main.nf` and configs.
+#   -i <CNV_TSV_FILE>   Path to a TSV file containing CNVs. Must include columns:
+#                        SampleID, Chr, Start, End, Type. Additional columns are preserved.
+#   -g <GENOME_VERSION>  Genome build (e.g., GRCh37, GRCh38) to use for annotation.
+#   -c <COHORT_TAG>      Identifier for the cohort (used in annotation and output naming).
+sbatch CNV-DB-Builder/setup/ccdb/annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-DB-Builder
+```
 
 ### Output
 Minimally, there are two output tables:
 
-#### cnvDB.parquet
+#### **cnvDB.parquet**
 
 | __dTYPE__ | __Column__ | __Description__                                    | 
 |:--------- | -----------| -------------------------------------------------- |
@@ -51,21 +60,22 @@ Minimally, there are two output tables:
 |string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |	
 |float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions from UCSC.         |
-|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'      |	
+|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification of the git'      |	
 
 
-#### geneDB.parquet
+#### **geneDB.parquet**
 
 | __dTYPE__ | __Column__ | __Description__                                    |
 |:--------- | -----------| -------------------------------------------------- |
 |string     | CNV_ID              | ID of the CNV in the format of 'Chr_Start_End_Type'|
 |string     | Location            | Location ID from VEP.                               |
+|string     | Allele              | CNV type. Either __'DEL'__ or __'DUP'__                    |
 |string     | Gene_ID             | Ensembl ID of the __gene__ |
 |string     | Transcript_ID       | Ensembl ID of the __transcript__ |
 |string[]   | Consequence         | String list of Gene disruptions annotated by VEP.   | 
 |string     | BIOTYPE             | Transcript classification.                 |
 |boolean    | CANONICAL           | Transcript level canonical flag.                 |
-|string     | MANE                | Matched Annotation from NCBI and EMBL-EBI (MANE) flag. [https://www.ncbi.nlm.nih.gov/refseq/MANE/](https://www.ncbi.nlm.nih.gov/refseq/MANE/). __Only available in GRCh38__ |
+|string     | MANE                | Matched Annotation from NCBI and EMBL-EBI (MANE) flag. [https://www.ncbi.nlm.nih.gov/refseq/MANE/](https://www.ncbi.nlm.nih.gov/refseq/MANE/). ⚠️ __Only available in GRCh38__ |
 |string     | EXON                | String representation of the exons impacted by the CNV in the format of "<start_exon>-<end_exon>/<exon_count>" | 
 |string     | INTRON              | String representation of the introns impacted by the CNV formatted as "<start_intron>-<end_intron>/<intron_count>" |
 |float      | Exon_Overlap        | Number of exons overlapped by the CNV divided by the total number of exons in the transcript. See notes |
@@ -74,7 +84,7 @@ Minimally, there are two output tables:
 |float 	    | LOEUF		          | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained) for the given transcript_ID |	
 | string    | Gene_Name              | Gene name corresponding to the Gene_ID |	
 | int       | Transcript_Start       | Start of the **transcript** (1-based, inclusive)                                   |	
-| int       | Transcript_End         | End of the **transcript** (1-based, inclusive)                                     |	
+| int       | Transcript_Stop        | Stop of the **transcript** (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript |	
 
 
@@ -93,18 +103,16 @@ For a given rCNV, its geneset is constructed based on the protein-coding canonic
 
 Refer to VEP for exact definitions: https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html
 
+#### LOEUF
+
+The **LOEUF** corresponds to the `lof.oe_ci.upper` value of the associated `Transcript_ID` from [gnomAD v4.1 constraint metrics](https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv).
+
+⚠️ This metric is adapted for **GRCh38**: since it relies on GRCh38 transcript IDs, using it with GRCh37 may lead to mismatches or missing values for some transcripts.
+
+
 #### Gnomad_Max_AF 
 
 Gnomad Allele Frequency (AF) annotations  for structural variants (SVs) are specific to the genome version.
-
-__GRCh37__ uses Gnomad V2 SV sites from here:
- https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz
-    
-- The fields extracted from the file are as follows:
-    - AFR_AF
-    - AMR_AF
-    - EAS_AF
-    - EUR_AF 
 
  __GRCh38__ uses Gnomad V4 SV sites derived from WGS. The file was downloaded from here: https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/genome_sv/gnomad.v4.1.sv.sites.vcf.gz
  
@@ -116,6 +124,15 @@ __GRCh37__ uses Gnomad V2 SV sites from here:
     - AF_sas
     - AF_eas
     - AF_asj
+
+__GRCh37__ uses Gnomad V2 SV sites from here:
+ https://storage.googleapis.com/gcp-public-data--gnomad/papers/2019-sv/gnomad_v2.1_sv.sites.vcf.gz
+    
+- The fields extracted from the file are as follows:
+    - AFR_AF
+    - AMR_AF
+    - EAS_AF
+    - EUR_AF 
 
 
 A 70% reciprocal alignment is required for the CNV to be matched with a known SV. The maximum frequency is taken across all populations. In the event multiple gnomad SV annotations match, the maximum allele frequency is taken across SVs.

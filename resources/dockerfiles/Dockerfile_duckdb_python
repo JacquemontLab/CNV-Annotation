@@ -1,0 +1,24 @@
+# Base Python image
+FROM python:3.11-slim
+
+# Install dependencies and clean up
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip install --no-cache-dir \
+    duckdb \
+    pandas \
+    matplotlib \
+    tqdm
+
+# Set working directory
+WORKDIR /data
+
+# Default working directory and shell
+WORKDIR /data
+SHELL ["/bin/bash", "-c"]
+CMD ["bash"]
+

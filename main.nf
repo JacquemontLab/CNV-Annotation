@@ -264,7 +264,7 @@ workflow {
             params.genome_version)
 
         // Step 6: Produce PDF reports for CNV and gene annotation results
-        pdf_cnv_ch = producePDFWorkflowCNV(buildCnvDB.out)
+        pdf_cnv_ch = producePDFWorkflowCNV(RCNV_ANNOTATION.out.cnvDB_rCNV)
         pdf_gene_ch = producePDFWorkflowGene(VEP_ANNOTATE.out)
         
         // Step 7: Build a general summary report for the workflow run

@@ -1,3 +1,23 @@
+# ------------------------------------------------------------------------------
+# 
+# Description:
+# This script processes recurrent CNV data from an Excel file and generates a
+# unified geneset per rCNV entry for both GRCh37 and GRCh38 genome versions.
+#
+# Main steps:
+# 1. Load the recurrent CNV dataset from Excel.
+# 2. Clean and standardize column names.
+# 3. Parse genomic coordinates (Chr, Start, Stop) for GRCh37 and GRCh38.
+# 4. Create unique recurrent CNV identifiers per genome build.
+# 5. Load overlapping annotated genes for each genome version.
+# 6. Merge CNVs with gene annotations and collapse into non-redundant genesets.
+# 7. Attach the geneset for each CNV (for both GRCh37 and GRCh38).
+# 8. Filter CNVs to retain only those with genesets in both genome versions.
+# 9. Save the final table (`geneset_per_rCNV.tsv`) for downstream analyses.
+#
+# ------------------------------------------------------------------------------
+
+
 library(readxl)
 library(dplyr)
 library(tidyr)
