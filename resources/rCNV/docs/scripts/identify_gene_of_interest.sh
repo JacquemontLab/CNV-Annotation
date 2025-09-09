@@ -67,7 +67,7 @@ for genome_version in GRCh37 GRCh38; do
             t.Stop,
             'DUP' AS Type,
         FROM read_csv_auto('dummy_annotated_${genome_version}.txt', delim='\t', header=true, all_varchar=true) b
-        LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/flben/Git/CNV-DB-Builder/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
+        LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/flben/Git/CNV-Annotation/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
         ON b.Feature = t.Transcript_ID
         WHERE b.CANONICAL = 'YES'
         AND b.BIOTYPE = 'protein_coding'
@@ -84,7 +84,7 @@ for genome_version in GRCh37 GRCh38; do
         SUM(CASE WHEN t.Transcript_ID IS NOT NULL THEN 1 ELSE 0 END) AS matched,
         SUM(CASE WHEN t.Transcript_ID IS NULL THEN 1 ELSE 0 END) AS not_matched
     FROM read_csv_auto('dummy_annotated_${genome_version}.txt', delim='\t', header=true, all_varchar=true) b
-    LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/flben/Git/CNV-DB-Builder/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
+    LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/flben/Git/CNV-Annotation/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
     ON b.Feature = t.Transcript_ID
     WHERE b.CANONICAL = 'YES'
     AND b.BIOTYPE = 'protein_coding'

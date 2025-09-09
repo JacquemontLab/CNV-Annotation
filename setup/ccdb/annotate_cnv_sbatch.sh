@@ -22,7 +22,7 @@
 #   -c <COHORT_TAG>      Identifier for the cohort (used in annotation and output naming).
 #
 # Example usage:
-#   sbatch annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-DB-Builder
+#   sbatch annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-Annotation
 # ------------------------------------------------------------------------------
 
 

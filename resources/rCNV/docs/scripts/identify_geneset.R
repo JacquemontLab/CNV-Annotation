@@ -23,7 +23,7 @@ library(dplyr)
 library(tidyr)
 
 # Load Excel file
-rCNV_df <- read_excel("~/flben/Git/CNV-DB-Builder/resources/rCNV/docs/recurrent_CNV_dataset.xlsx")
+rCNV_df <- read_excel("~/flben/Git/CNV-Annotation/resources/rCNV/docs/recurrent_CNV_dataset.xlsx")
 
 # Assign clean column names
 colnames(rCNV_df) <- rCNV_df[1, ]

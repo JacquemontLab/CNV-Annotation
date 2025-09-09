@@ -28,7 +28,7 @@ RESOURCE_DIR="$(git rev-parse --show-toplevel)/resources"
 
 
 # --- Git-Variables
-GIT_PROJECT="CNV-DB-Builder"
+GIT_PROJECT="CNV-Annotation"
 
 
 # --- Command-Line Argument Parser ---
@@ -65,7 +65,7 @@ if [[ "$RESOURCE_DIR" == "$(git rev-parse --show-toplevel)/resources" ]]; then
         if [[ "$GIT_PROJECT" == "$repo_name" ]]; then
                 echo "Default resource directory found at: $RESOURCE_DIR"
         else
-                echo "Invalid launch context: please launch script within the CNV-DB-Builder repository or"
+                echo "Invalid launch context: please launch script within the CNV-Annotation repository or"
                 echo " provide a path to a resource directory (-r /path/to/dir)"
                 exit 1
         fi
