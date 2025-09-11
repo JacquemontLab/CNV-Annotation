@@ -23,6 +23,8 @@ nextflow.enable.dsl=2
 nextflow.preview.output = true
 nextflow.enable.moduleBinaries = true
 
+// Get Git hash at workflow launch
+params.git_hash = "git -C ${projectDir} rev-parse HEAD".execute().text.trim()
 
 // Default VEP dir following install script
 params.vep_cache = "${projectDir}/resources"
@@ -149,6 +151,7 @@ process buildSummary {
     val cohort_tag
     val cnvs_path
     val genome_version
+    val git_hash
     path last_outfile
 
     output:
@@ -156,9 +159,6 @@ process buildSummary {
 
     script:
     """
-    #Grab Git Commit Hash for working version
-    git_version=\$(git log -1 HEAD | grep "commit")
-
     # Convert workflow start datetime to epoch seconds
     start_sec=\$(date -d "${workflow.start}" +%s)
 
@@ -187,9 +187,8 @@ process buildSummary {
     Command:
     ${workflow.commandLine}
 
-    git hash working version:
-    \${git_version}
-
+    Git hash working version:
+    ${git_hash}
     """
 
     stub:
@@ -278,6 +277,7 @@ workflow {
             params.cohort_tag,
             params.cnvs,
             params.genome_version,
+            params.git_hash,
             pdf_cnv_ch
         )
 
