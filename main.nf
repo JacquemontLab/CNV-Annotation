@@ -121,6 +121,7 @@ process buildCnvDB {
 
 // Generate summary PDFs from Parquet files
 process produceSummaryPDF {
+    label 'polars_duckdb'
 
     memory {
         // Dynamically allocate memory based on system total

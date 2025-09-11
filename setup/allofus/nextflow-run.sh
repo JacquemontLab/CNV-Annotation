@@ -7,7 +7,7 @@
 # Any additional columns present will be preserved and passed through.
 
 
-export NXF_OFFLINE=true
+export NXF_OFFLINE=false
 
 cnv_input_file=$1
 
@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 nextflow run ${SCRIPT_DIR}/../../main.nf --cnvs "$cnv_input_file" \
     --genome_version "GRCh38" \
-    --cohort_tag "AllOfUs" \
+    --cohort_tag "AllOfUs_tierv8_Array_GRCh38_Annotation" \
     -c ${SCRIPT_DIR}/allofus.config \
     -with-report report.html \
     -resume

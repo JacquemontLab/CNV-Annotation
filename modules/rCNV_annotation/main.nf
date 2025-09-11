@@ -11,7 +11,7 @@
 //   - cnvDB.parquet: CNV database annotated with flagged recurrent CNVs
 //   - rCNV_sample_counts.tsv: table of sample counts per recurrent CNV
 process annotate_rCNV {
-    label 'quick'
+    label 'polars_duckdb'
 
     input:
     path cnvDB
