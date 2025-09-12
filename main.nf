@@ -189,7 +189,7 @@ process buildSummary {
     ${workflow.commandLine}
 
     Git hash working version:
-    ${git_hash}
+    commit ${git_hash}
     """
 
     stub:
