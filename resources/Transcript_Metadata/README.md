@@ -122,5 +122,70 @@ duckdb -c "
 
 ```
 
+### Getting Transcript Overlaps With Problematic Regions
+
+#### GRCh38
 
 
+```bash
+cat ../Genome_Regions/Genome_Regions_data.tsv | grep "GRCh38" | cut -f1-3 > pRegions_38.bed
+cat pRegions_38.bed | tr --delete "chr"   > pRegions_38_rename.bed
+bedtools intersect -b pRegions_38_rename.bed -a Homo_sapiens.GRCh38.113.gtf -wao  > pRegion38.gtf.bed
+```
+Extract transcript entries and reduce to final output
+```sql
+CREATE OR REPLACE TABLE inter AS (SELECT * FROM read_csv('pRegion38.gtf.bed', delim = '\t', all_varchar = true) WHERE column02 == 'transcript');
+ALTER TABLE inter ADD COLUMN Transcript_ID VARCHAR;
+ALTER TABLE inter ADD COLUMN Transcript_pRegion_Overlap FLOAT;
+UPDATE inter SET Transcript_ID = regexp_extract(column08,  'transcript_id \"(.*?)\"',  1);
+UPDATE inter SET Transcript_pRegion_Overlap =  (CAST(column12 AS INTEGER) / (CAST(column04 AS INTEGER) - CAST(column03 AS INTEGER) + 1));
+
+.shell cp transcriptDB_GRCh38.parquet transcriptDB_GRCh38_BACKUP.parquet
+
+COPY (
+    SELECT tDB.*, 
+        inter_max.Transcript_pRegion_Overlap,
+    FROM ( 
+        SELECT
+            Transcript_ID,
+            MAX(Transcript_pRegion_Overlap) AS Transcript_pRegion_Overlap 
+                FROM inter 
+                GROUP BY Transcript_ID 
+            ) AS inter_max
+    RIGHT JOIN 'transcriptDB_GRCh38_BACKUP.parquet' AS tDB 
+    USING (Transcript_ID)) TO 'transcriptDB_GRCh38.parquet';
+
+
+
+```
+
+#### GRCh37
+```bash
+curl https://ftp.ensembl.org/pub/grch37/release-113/gtf/homo_sapiens/Homo_sapiens.GRCh37.87.chr.gtf.gz > Homo_sapiens.GRCh37.87.gtf.gz
+cat ../Genome_Regions/Genome_Regions_data.tsv | grep "GRCh37" | cut -f1-3 > pRegions_37.bed
+cat pRegions_37.bed | tr --delete "chr"   > pRegions_37_rename.bed
+bedtools intersect -b pRegions_37_rename.bed -a Homo_sapiens.GRCh37.87.gtf -wao  > pRegion37.gtf.bed
+```
+
+```sql
+CREATE OR REPLACE TABLE inter AS (SELECT * FROM read_csv('pRegion37.gtf.bed', delim = '\t', all_varchar = true) WHERE column02 == 'transcript');
+ALTER TABLE inter ADD COLUMN Transcript_ID VARCHAR;
+ALTER TABLE inter ADD COLUMN Transcript_pRegion_Overlap FLOAT;
+UPDATE inter SET Transcript_ID = regexp_extract(column08,  'transcript_id \"(.*?)\"',  1);
+UPDATE inter SET Transcript_pRegion_Overlap =  (CAST(column12 AS INTEGER) / (CAST(column04 AS INTEGER) - CAST(column03 AS INTEGER) + 1));
+
+.shell cp transcriptDB_GRCh37.parquet transcriptDB_GRCh37_BACKUP.parquet
+COPY (
+    SELECT tDB.*, 
+        inter_max.Transcript_pRegion_Overlap,
+    FROM ( 
+        SELECT
+            Transcript_ID,
+            MAX(Transcript_pRegion_Overlap) AS Transcript_pRegion_Overlap 
+                FROM inter 
+                GROUP BY Transcript_ID 
+            ) AS inter_max
+    RIGHT JOIN 'transcriptDB_GRCh37_BACKUP.parquet' AS tDB 
+    USING (Transcript_ID)) TO 'transcriptDB_GRCh37.parquet';
+
+```
