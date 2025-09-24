@@ -36,7 +36,7 @@ The following software and packages are required to run the CNV-Annotation pipel
 All dependencies can be installed automatically using the provided installation script:
 
 ```bash
-./INSTALL.sh
+./INSTALL.sh -g GRCh38
 ```
 
 ### Running the CNV annotation pipeline
@@ -95,7 +95,7 @@ Minimally, there are two output tables:
 | int       | Transcript_Start       | Start of the **transcript** (1-based, inclusive)                                   |	
 | int       | Transcript_Stop        | Stop of the **transcript** (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript |	
-| float     | Transcript_pRegion_Overlap | The basepair percentage of overlap of the transcript with a UCSC problematic region |  
+| float     | Transcript_problematic_regions_Overlap | The basepair percentage of overlap of the transcript with a UCSC problematic region |  
 
 The relationship between the tables relies on the CNV_ID. In the __cnvDB__, all CNVs are present, regardless of duplicates across samples. The __geneDB__ has CNVs that are deduplicated prior to running VEP. All duplicated CNVs are therefore a product of multiple transcripts belonging to the same gene. Intergenic CNVs will also be reported as either NULL in the Gene_ID column or be assigned to a gene if within 5kb of a Start/Stop codon. In the latter case, a consequence flag will be present ('upstream_gene_variant' or 'downstream_gene_variant') 
 
