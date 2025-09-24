@@ -68,8 +68,8 @@ Minimally, there are two output tables:
 |int        | End                | End position.
 |string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |	
-|float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions from UCSC.         |
-|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification of the git'      |	
+|float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions, for more details see section 'Problematic Regions'.         |
+|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'      |	
 
 
 #### **geneDB.parquet**
@@ -95,13 +95,18 @@ Minimally, there are two output tables:
 | int       | Transcript_Start       | Start of the **transcript** (1-based, inclusive)                                   |	
 | int       | Transcript_Stop        | Stop of the **transcript** (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript |	
-| float     | Transcript_problematic_regions_Overlap | The basepair percentage of overlap of the transcript with a UCSC problematic region |  
+| float     | Transcript_problematic_regions_Overlap | The basepair percentage of overlap of the transcript with problematic regions, for more details see section 'Problematic Regions'. |  
 
 The relationship between the tables relies on the CNV_ID. In the __cnvDB__, all CNVs are present, regardless of duplicates across samples. The __geneDB__ has CNVs that are deduplicated prior to running VEP. All duplicated CNVs are therefore a product of multiple transcripts belonging to the same gene. Intergenic CNVs will also be reported as either NULL in the Gene_ID column or be assigned to a gene if within 5kb of a Start/Stop codon. In the latter case, a consequence flag will be present ('upstream_gene_variant' or 'downstream_gene_variant') 
 
 
 
 ### Notes
+
+#### Problematic Regions
+
+This region regroups multiple tables from UCSC: Segmental Duplications, Major Histocompatibility Complex (MHC), Centromeres, Telomeres, and Problematic Regions from UCSC.
+For details, please refer to the file CNV-Annotation/resources/Genome_Regions/README.md 
 
 #### Recurrent CNVs identification
 
