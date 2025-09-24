@@ -151,7 +151,7 @@ process buildGeneDB {
                         tbl_transcript.Start AS Transcript_Start,
                         tbl_transcript.Stop AS Transcript_Stop,
                         tbl_transcript.Exon_count AS Exon_count,
-                        tbl_transcript.Transcript_pRegion_Overlap
+                        tbl_transcript.Transcript_problematic_regions_Overlap
                         FROM read_parquet(${transcript_metadata}) AS tbl_transcript
                         RIGHT JOIN read_parquet('tmp_gene_constraints.parquet') AS geneDB
                         USING (Transcript_ID)
