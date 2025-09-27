@@ -3,7 +3,7 @@
 ###############################################################################
 # Script Name: compute_cnv_region_overlap_fraction.sh
 # Description: Calculates the fraction of overlap between CNV intervals and
-#              multiple sets of genomic regions (BED files). Outputs a TSV
+#              multiple sets of genomic regions (TSV files). Outputs a TSV
 #              file with overlap fractions for each region set.
 #              The constructed temporary ID corresponds to SampleID, Chr, Start, End, Type
 #
@@ -13,8 +13,8 @@
 #   <cnv_file[.gz]>     : CNV input file, gzipped or plain text.
 #                         Must contain columns: SampleID, Chr, Start, End, Type (tab-separated).
 #   <region_list>       : Comma-separated list of region definitions in the form:
-#                         "name1:file1.bed[.gz],name2:file2.bed[.gz],..."
-#                         Each BED file must have: Chr, Start, End.
+#                         "name1:file1.tsv[.gz],name2:file2.tsv[.gz],..."
+#                         Each TSV file must have: Chr, Start, End.
 #   <output_file[.gz]>  : Output TSV file (gzipped if ending in .gz).
 #
 # Author: Florian Bénitière
@@ -31,9 +31,9 @@ if [ "$#" -ne 3 ]; then
     echo "  <input_file[.gz]>       : The input CNV file (either gzipped or uncompressed)."
     echo "                            Must contain at least the following columns:"
     echo "                            SampleID\tChr\tStart\tEnd\tType"
-    echo "  <regions_to_overlap> : A comma-separated list of regions with corresponding BED files."
-    echo "                            Each entry should be in the format 'first_region_name:bed_file,second_region_name:bed_file'."
-    echo "                            Each BED file must contain at least the following columns:"
+    echo "  <regions_to_overlap> : A comma-separated list of regions with corresponding TSV files."
+    echo "                            Each entry should be in the format 'first_region_name:tsv_file,second_region_name:tsv_file'."
+    echo "                            Each TSV file must contain at least the following columns:"
     echo "                            Chr\tStart\tEnd"
     echo "  <output_file[.gz]>      : The TSV output file where the results will be saved (either gzipped or uncompressed)."
     exit 1
