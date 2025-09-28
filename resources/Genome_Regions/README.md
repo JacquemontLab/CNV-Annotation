@@ -148,7 +148,7 @@ For GRCh37
 cat all_probregion_GRCh37.bed  | sort -k1,1 -k2,2n |  bedtools merge -i - | awk -F'\t' -v OFS='\t' '{$4="problematic_regions"; $5="GRCh38"; print}' > problematic_regions_GRCh37.bed
 ```
 
-PAR1-2, XTR, MHC regions and the header were added back in manually.
+PAR1-2, XTR and the header were added back in manually.
 
 To merge the two genome assemblies.
 ```bash
