@@ -1,5 +1,5 @@
 # Genomic regions of interest TSV File only for canonical chromosomes
-This file integrates PAR1-2, XTR, and problematic regions, including the MHC, centromeres, telomeres, segmental duplications, and other regions from UCSC.
+This file integrates PAR1-2, XTR, and problematic regions, including the major histocompatibility complex, centromeres, telomeres, segmental duplications, and other regions from UCSC.
 
 
 # All the following data are combined in one unique file Genome_Regions_data.tsv
