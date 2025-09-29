@@ -31,8 +31,8 @@
 #SBATCH --ntasks=1                    # Run on a single CPU
 #SBATCH --cpus-per-task=64
 #SBATCH --mem-per-cpu=3500MB                     # Job memory request
-#SBATCH --time=00:30:00               # Time limit hrs:min:sec
-#SBATCH --output=cnvDB_Buider_%j.log   # Standard output and error log
+#SBATCH --time=01:30:00               # Time limit hrs:min:sec
+#SBATCH --output=cnv_annotation_%j.log   # Standard output and error log
 #SBATCH --account=rrg-jacquese        #group account
 
 
