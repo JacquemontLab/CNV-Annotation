@@ -37,7 +37,7 @@
 
 
 # Default GIT_DIR
-git_dir="/home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/"
+git_dir="/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/"
 
 # ---------------------------
 # Argument parsing
