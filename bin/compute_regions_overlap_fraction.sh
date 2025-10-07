@@ -107,7 +107,7 @@ for item in ${regions_to_overlap//,/ }; do
     # Merge overlapping intervals and compute fraction
     temp_frac_overlap_bed=$(mktemp)
     awk -F'\t' 'BEGIN{OFS="\t"} {
-            size = $3 - $2;
+            size = $3 - $2 + 1;  # Use +1 if end is inclusive
             overlap = $NF;
             frac = overlap / size ;
             print $0, frac
