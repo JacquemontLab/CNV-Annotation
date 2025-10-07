@@ -115,6 +115,7 @@ process VEP_GRCh37 {
 // Integrates VEP output, gnomAD constraints (LOEUF), and transcript metadata.
 // Produces a compressed Parquet file containing genome-version metadata.
 process buildGeneDB {
+    label 'polars_duckdb'
 
     input:
     path vep_out
