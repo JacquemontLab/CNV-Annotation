@@ -22,8 +22,8 @@ Dependencies:
 ===============================================================================
 """
 
-__author__ = "Benjamin Clark"
-__version__ = "1.0.1"
+__author__ = "Benjamin Clark & Florian Bénitière"
+__version__ = "1.0.2"
 
 
 
@@ -34,6 +34,11 @@ def main():
     # Lazy df creation
     df = pl.scan_parquet(sys.argv[1])
 
+    # Cast all columns to string (Utf8)
+    df = df.with_columns([
+        pl.col(col).cast(pl.Utf8) for col in df.columns
+    ])
+    
     # Initial cleaning that shouldn't be done in parallel, (yet?)
     df = make_null(df)
     df = make_exon_overlap(df)
@@ -125,6 +130,7 @@ def make_exon_overlap(df):
             pl.lit(1.0)
         )
         .otherwise(None)
+        .cast(pl.Float64)
         .alias("Exon_Overlap")
     ).drop("exon_range",
            "exon_range_split",
@@ -143,14 +149,13 @@ def make_null(df):
     Returns:
         pl.DataFrame: A copy of the DataFrame with '-' values replaced by nulls.
     """
-    df = df \
-        .with_columns([
+    df = df.with_columns([
         pl.when(pl.col(col) == '-')
         .then(None)
         .otherwise(pl.col(col))
         .alias(col)
-        for col in [c for c in df.collect_schema().names()] 
-    ])
+        for col in [c for c, dtype in df.schema.items() if dtype == pl.Utf8]
+        ])
     return df
 
 
@@ -210,6 +215,7 @@ def make_max_gnomad(df):
         pl.DataFrame: A copy of the DataFrame with the 'gnomad_max_freq' column added
                       and all original 'gnomad_AF_*' columns removed.
     """
+        
     # Getting maximum value per list element
     df = df \
         .with_columns([
@@ -226,7 +232,7 @@ def make_max_gnomad(df):
                 .list.max()
             )
             .alias(col)
-            for col in df.collect_schema() if col.startswith("gnomad")]
+            for col in df.collect_schema().names() if col.startswith("gnomad")]
         )
     # Getting maximum across columns (rowwise)
     df = df \
