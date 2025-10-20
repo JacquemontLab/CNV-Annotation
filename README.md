@@ -70,7 +70,9 @@ Minimally, there are two output tables:
 |string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |	
 |float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
-|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'      |	
+|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'.      |	
+|int        | sum_LOEUF              | Sum of LOEUF values from canonical transcripts overlapping exons.      |	
+
 
 
 #### **geneDB.parquet**

@@ -51,7 +51,8 @@ switch (params.genome_version) {
 
 // Include external modules for VEP annotation and LOEUF report generation
 include { VEP_ANNOTATE } from './modules/vep_annotate'
-include { LOEUF_REPORT } from './modules/loeuf_report'
+include { LOEUF_REPORT } from './modules/CNV_LOEUF'
+include { sum_loeuf_cnv } from './modules/CNV_LOEUF'
 include { RCNV_ANNOTATION } from './modules/rCNV_annotation'
 
 
@@ -263,8 +264,12 @@ workflow {
             VEP_ANNOTATE.out    //geneDB
         )
         
-        RCNV_ANNOTATION(
+        sum_loeuf_cnv(
             buildCnvDB.out,
+            VEP_ANNOTATE.out)
+
+        RCNV_ANNOTATION(
+            sum_loeuf_cnv.out,
             VEP_ANNOTATE.out,
             params.recurrent_path,
             params.genome_version)

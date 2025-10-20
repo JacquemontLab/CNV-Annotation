@@ -1,6 +1,46 @@
 #!/usr/bin/env nextflow
 
 
+
+
+// This process computes, for each CNV_ID, the sum of LOEUF values
+// from canonical transcripts (CANONICAL = TRUE) overlapping exons (Exon_Overlap > 0),
+// then merges the result with the CNV database.
+process sum_loeuf_cnv {
+    label 'quick'
+    
+    input:
+    path cnvDB 
+    path geneDB 
+
+    output:
+    path 'cnvDB_Loeuf.parquet'
+
+    script:
+    """
+    duckdb -c "
+        COPY (
+            SELECT
+                c.*,
+                g.sum_LOEUF
+            FROM '${cnvDB}' AS c
+            LEFT JOIN (
+                SELECT
+                    CNV_ID,
+                    SUM(LOEUF) AS sum_LOEUF
+                FROM '${geneDB}'
+                WHERE CANONICAL = TRUE
+                AND Exon_Overlap > 0
+                GROUP BY CNV_ID
+            ) AS g
+            ON c.CNV_ID = g.CNV_ID
+        ) TO 'cnvDB_Loeuf.parquet' (FORMAT 'PARQUET');
+        "
+    """
+}
+
+
+
 // This process merges the CNV database with the Gene database using CNV_ID as the key.
 // The output is a merged Parquet file containing both CNV and gene information.
 process merge_cnv_gene {
@@ -18,13 +58,12 @@ process merge_cnv_gene {
     duckdb -c "
         COPY (
             SELECT cnv.*,
-                gene.*
+                   gene.*
             FROM read_parquet('${cnvDB}') AS cnv
             LEFT JOIN read_parquet('${geneDB}') AS gene
             USING (CNV_ID)
         ) TO 'mergedDB.parquet' (FORMAT 'PARQUET');
         "
-
     """
 }
 
