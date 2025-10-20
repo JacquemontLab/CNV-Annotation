@@ -130,7 +130,7 @@ process buildGeneDB {
     """
     # First transform large VEP output to parquet
     duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
-               TO 'tmp_db.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');"
+               TO 'tmp_db.parquet' (FORMAT 'PARQUET');"
 
     # Formatting output
     gene_db.py tmp_db.parquet tmp_formatted.parquet
@@ -141,7 +141,7 @@ process buildGeneDB {
                         FROM read_csv(\\"${gnomad_constraints}\\", delim = '\\t') AS gnomad
                         RIGHT JOIN (SELECT * FROM read_parquet('tmp_formatted.parquet')) AS geneDB ON geneDB.Transcript_ID = gnomad.transcript
                         
-        ) TO "tmp_gene_constraints.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
+        ) TO "tmp_gene_constraints.parquet" (FORMAT 'PARQUET');
     "
     
     # Adding Transcript Metadata
@@ -156,7 +156,7 @@ process buildGeneDB {
                         FROM read_parquet(${transcript_metadata}) AS tbl_transcript
                         RIGHT JOIN read_parquet('tmp_gene_constraints.parquet') AS geneDB
                         USING (Transcript_ID)
-                ) TO "geneDB.parquet" (FORMAT 'PARQUET', CODEC 'ZSTD');
+                ) TO "geneDB.parquet" (FORMAT 'PARQUET');
     "
 
 

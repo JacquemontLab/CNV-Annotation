@@ -22,7 +22,7 @@ process merge_cnv_gene {
             FROM read_parquet('${cnvDB}') AS cnv
             LEFT JOIN read_parquet('${geneDB}') AS gene
             USING (CNV_ID)
-        ) TO 'mergedDB.parquet' (FORMAT 'PARQUET', CODEC 'ZSTD');
+        ) TO 'mergedDB.parquet' (FORMAT 'PARQUET');
         "
 
     """

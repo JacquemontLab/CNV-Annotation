@@ -27,6 +27,7 @@ SampleID  Chr  Start  End  Type  [other columns preserved]
 
 The following software and packages are required to run the CNV-Annotation pipeline:
 
+* **Bedtools**
 * **Python** 3.13+
 * **polars** (Python library for DataFrames)
 * **duckdb** (Python library and CLI)
