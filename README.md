@@ -71,7 +71,7 @@ Minimally, there are two output tables:
 |...| *__INPUT COLUMNS__* |                           |	
 |float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
 |string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'.      |	
-|int        | sum_LOEUF              | Sum of LOEUF values from canonical transcripts overlapping exons.      |	
+|int        | sum_LOEUF              | Sum of the LOEUF values of canonical transcripts whose exons are overlapped by the CNV.      |	
 
 
 
