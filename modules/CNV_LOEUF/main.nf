@@ -7,7 +7,7 @@
 // from canonical transcripts (CANONICAL = TRUE) overlapping exons (Exon_Overlap > 0),
 // then merges the result with the CNV database.
 process sum_loeuf_cnv {
-    label 'quick'
+    label 'polars_duckdb'
     
     input:
     path cnvDB 
@@ -44,7 +44,7 @@ process sum_loeuf_cnv {
 // This process merges the CNV database with the Gene database using CNV_ID as the key.
 // The output is a merged Parquet file containing both CNV and gene information.
 process merge_cnv_gene {
-    label 'quick'
+    label 'polars_duckdb'
     
     input:
     path cnvDB 
@@ -69,7 +69,7 @@ process merge_cnv_gene {
 
 // Generates a LOEUF-based figure (CNV enrichment per LOEUF decile) from the merged CNV-Gene database.
 process loeuf_report {
-    label 'loeuf_report'
+    label 'polars_duckdb'
     
     input:
     path loeuf_metadata 
