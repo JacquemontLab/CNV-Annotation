@@ -144,8 +144,9 @@ deactivate
 if command_exists nextflow; then
     echo "Nextflow command detected. Skipping installation..."
 else
-    echo "⬇️  Installing Nextflow..."
-    curl -s https://get.nextflow.io | bash
+    echo "⬇️ Installing Nextflow 25.04.2..."
+    curl -L -o "nextflow" https://github.com/nextflow-io/nextflow/releases/download/v25.04.2/nextflow
+    #curl -s https://get.nextflow.io | bash
     mkdir -p "$HOME/bin"
     mv nextflow "$HOME/bin/"
     chmod +x "$HOME/bin/nextflow"   
@@ -153,6 +154,7 @@ else
     export PATH="$HOME/bin:$PATH"
     echo "✅ Nextflow installed: $($HOME/bin/nextflow -version)"
 fi
+
 # --- Install VEP 113 ---
 # VEP_DIR="$HOME/ensembl-vep"
 # if ! command_exists vep; then
