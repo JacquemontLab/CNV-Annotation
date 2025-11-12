@@ -58,7 +58,7 @@ include { RCNV_ANNOTATION } from './modules/rCNV_annotation'
 
 // It extracts unique CNV coordinates to reduce redundant queries
 process identifyUniqCNV {
-    label 'quick'
+    label 'polars_duckdb'
     
     input:
     path cnvs 
