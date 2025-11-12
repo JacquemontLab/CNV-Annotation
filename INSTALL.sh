@@ -112,7 +112,7 @@ add_to_path_once() {
 
 # --- Install DuckDB ---
 if command_exists duckdb; then
-    echo "✅ DuckDB already installed."
+    echo "✅  DuckDB already installed."
 else
     echo "🔧 Installing DuckDB..."
     curl -fsSL https://install.duckdb.org | sh
@@ -121,7 +121,7 @@ fi
 
 # --- Install Java (if needed) ---
 if ! check_java_version; then
-    echo "🔧 Installing Java 17 via SDKMAN..."
+    echo "🔧  Installing Java 17 via SDKMAN..."
     curl -s https://get.sdkman.io | bash
     source "$HOME/.bashrc"
     source "$HOME/.zshrc"
@@ -137,14 +137,29 @@ python3 -m venv "$ENV_DIR/db-builder-env"
 source "$ENV_DIR/db-builder-env/bin/activate"
 pip install --upgrade pip
 pip install duckdb pandas matplotlib tqdm polars pyarrow
-echo "✅ Python virtual environment installed in $ENV_DIR/db-builder-env. Be sure to source before run."
+echo "✅  Python virtual environment installed in $ENV_DIR/db-builder-env. Be sure to source before run."
 deactivate
 
-# --- Install Nextflow ---
-if command_exists nextflow; then
-    echo "Nextflow command detected. Skipping installation..."
+
+# --- Install Nextflow 25.04.2 if not present ---
+NF_REQUIRED_VERSION="25.04.2"
+
+if command -v nextflow &> /dev/null; then
+    NF_CURRENT_VERSION=$(nextflow -version | head -n 3 | grep version | awk '{print $2}')
+    if [[ "$NF_CURRENT_VERSION" == "$NF_REQUIRED_VERSION" ]]; then
+        echo "✅  Nextflow $NF_REQUIRED_VERSION is already installed."
+        INSTALL_NEXTFLOW=false
+    else
+        echo "⬇️  Nextflow installed ($NF_CURRENT_VERSION) is not $NF_REQUIRED_VERSION."
+        INSTALL_NEXTFLOW=true
+    fi
 else
-    echo "⬇️ Installing Nextflow 25.04.2..."
+    echo "⬇️  Nextflow not found."
+    INSTALL_NEXTFLOW=true
+fi
+
+if [[ "${INSTALL_NEXTFLOW:-false}" == true ]]; then
+    echo "🔧  Installing Nextflow 25.04.2..."
     curl -L -o "nextflow" https://github.com/nextflow-io/nextflow/releases/download/v25.04.2/nextflow
     #curl -s https://get.nextflow.io | bash
     mkdir -p "$HOME/bin"
@@ -152,7 +167,7 @@ else
     chmod +x "$HOME/bin/nextflow"   
     add_to_path_once 'export PATH="$HOME/bin:$PATH"'
     export PATH="$HOME/bin:$PATH"
-    echo "✅ Nextflow installed: $($HOME/bin/nextflow -version)"
+    echo "✅  Nextflow installed: $($HOME/bin/nextflow -version)"
 fi
 
 # --- Install VEP 113 ---
