@@ -11,6 +11,7 @@ export NXF_OFFLINE=false
 
 cnv_input_file=$1
 
+export CONDA_PKGS_DIRS=/home/jupyter/.conda/pkgs
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
