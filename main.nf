@@ -122,14 +122,6 @@ process buildCnvDB {
 process produceSummaryPDF {
     label 'polars_duckdb'
 
-    memory {
-        // Dynamically allocate memory based on system total
-        def memKB = new File('/proc/meminfo')
-            .readLines()
-            .find { it.startsWith('MemTotal:') }
-            .replaceAll(/\D+/, '') as long
-        return (memKB / 1024 / 1024).toInteger().GB
-    }
     input:
     path parquet_input
 
