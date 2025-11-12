@@ -69,7 +69,7 @@ process merge_cnv_gene {
 
 // Generates a LOEUF-based figure (CNV enrichment per LOEUF decile) from the merged CNV-Gene database.
 process loeuf_report {
-    label 'loeuf_report'
+    label 'polars_duckdb'
     
     input:
     path loeuf_metadata 
