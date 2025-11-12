@@ -75,9 +75,7 @@ process identifyUniqCNV {
 
 
 // Compute overlap of CNVs with genomic regions and add CNV_ID
-process computeOverlapRegion {    
-    label 'quick'
-
+process computeOverlapRegion {
     input:
     path uniq_cnvs
     val genomic_regions
@@ -103,7 +101,7 @@ process computeOverlapRegion {
 
 // Merge CNV dataset with region overlaps to build CNV database
 process buildCnvDB {
-    label 'quick'
+    label 'polars_duckdb'
 
     input:
     path cnvs
