@@ -145,8 +145,6 @@ process produceSummaryPDF {
 
 // Build a launch summary file with workflow metadata and timing
 process buildSummary {
-    label 'quick'
-    
     input:
     val cohort_tag
     val cnvs_path
