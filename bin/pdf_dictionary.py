@@ -1,33 +1,31 @@
-#!/usr/bin/env python
-
 # Florian Bénitière 16/03/2025
 # Script to generate a .pdf that describe the content by column of a .parquet
 
 
 import sys
-
 import duckdb
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from tqdm import tqdm
 import os
 from math import floor  # For rounding down numbers
 
-def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
-    output_file = path_to_snv_dataset.replace(".parquet", "_dictionary.pdf")
+def generate_pdf_dictionary_duckdb(path_to_ShortVariants_dataset, total_memory):
+    output_file = path_to_ShortVariants_dataset.replace(".parquet", "_dictionary.pdf")
 
-    if os.path.isfile(path_to_snv_dataset) and path_to_snv_dataset.endswith(".parquet"):
-        parquet_pattern = path_to_snv_dataset
-    elif os.path.isdir(path_to_snv_dataset):
+    if os.path.isfile(path_to_ShortVariants_dataset) and path_to_ShortVariants_dataset.endswith(".parquet"):
+        parquet_pattern = path_to_ShortVariants_dataset
+    elif os.path.isdir(path_to_ShortVariants_dataset):
         # Look for subdirectories
-        has_subdirs = any(os.path.isdir(os.path.join(path_to_snv_dataset, entry))
-                          for entry in os.listdir(path_to_snv_dataset))
+        has_subdirs = any(os.path.isdir(os.path.join(path_to_ShortVariants_dataset, entry))
+                          for entry in os.listdir(path_to_ShortVariants_dataset))
         if has_subdirs:
-            parquet_pattern = os.path.join(path_to_snv_dataset, "**/*.parquet")
+            parquet_pattern = os.path.join(path_to_ShortVariants_dataset, "**/*.parquet")
         else:
-            parquet_pattern = os.path.join(path_to_snv_dataset, "*.parquet")
+            parquet_pattern = os.path.join(path_to_ShortVariants_dataset, "*.parquet")
     else:
-        raise ValueError(f"Input path '{path_to_snv_dataset}' is neither a .parquet file nor a directory.")
+        raise ValueError(f"Input path '{path_to_ShortVariants_dataset}' is neither a .parquet file nor a directory.")
 
 
     # Open DuckDB connection
@@ -35,17 +33,23 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
     con.execute(f"SET memory_limit = '{total_memory}GB'")
     
     # Get column names and types
-    #schema = con.execute(f"DESCRIBE FROM read_parquet('{path_to_snv_dataset}/*/*.parquet')").fetchall()
     schema = con.execute(f"DESCRIBE FROM read_parquet('{parquet_pattern}')").fetchall()
 
 
     with PdfPages(output_file) as pdf:
+        with tqdm(total=len(schema)) as pbar:
             for column_name, duck_type, *_ in schema:
                 print(column_name)
+                print(duck_type)
+                # Ensure double quotes are preserved
+                column_escaped = f'"{column_name}"'
                 try:
                     if duck_type in ['INTEGER', 'DOUBLE', 'BIGINT', 'REAL', 'FLOAT']:
                         # Min/max for label
-                        min_val, max_val = con.execute(f"SELECT MIN({column_name}), MAX({column_name}) FROM read_parquet('{parquet_pattern}')").fetchone()
+
+                        query = f"SELECT MIN({column_escaped}), MAX({column_escaped}) FROM read_parquet('{parquet_pattern}')"
+
+                        min_val, max_val = con.execute(query).fetchone()
                         
                         bin_count = 50
                         bin_width = (max_val - min_val) / bin_count
@@ -55,15 +59,17 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
                         # Manually compute bin indices
                         histogram_query = f"""
                         SELECT 
-                            FLOOR(({column_name} - {min_val}) / {bin_width}) AS bin_idx,
+                            FLOOR(({column_escaped} - {min_val}) / {bin_width}) AS bin_idx,
                             COUNT(*) AS count
                         FROM read_parquet('{parquet_pattern}')
-                        WHERE {column_name} IS NOT NULL
+                        WHERE {column_escaped} IS NOT NULL
                         GROUP BY bin_idx
                         ORDER BY bin_idx
                         """
                         bins_data = con.execute(histogram_query).fetchall()
-
+                        if not bins_data:
+                            pbar.update(1)
+                            continue
 
                         # Convert bucket numbers to midpoints
                         bin_edges = [min_val + (i * (max_val - min_val) / 50) for i in range(51)]
@@ -83,16 +89,18 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
                     elif duck_type in ['VARCHAR', 'BOOLEAN','VARCHAR[]']:
                         # Frequency table for top 20 values
                         freq_query = f"""
-                        SELECT {column_name}, COUNT(*) AS count
+                        SELECT {column_escaped}, COUNT(*) AS count
                         FROM read_parquet('{parquet_pattern}')
-                        GROUP BY {column_name}
+                        GROUP BY {column_escaped}
                         ORDER BY count DESC
                         LIMIT 20
                         """
                         freq_data = con.execute(freq_query).fetchall()
-
+                        if not freq_data:
+                            pbar.update(1)
+                            continue
                         
-                        df_counts = pd.DataFrame(freq_data, columns=[column_name, 'count'])
+                        df_counts = pd.DataFrame(freq_data, columns=[column_escaped, 'count'])
                         
                         # Create a new figure for the table
                         fig, ax = plt.subplots(figsize=(10, 6))  # Increase the figure size for the table
@@ -126,14 +134,17 @@ def generate_pdf_dictionary_duckdb(path_to_snv_dataset, total_memory):
                         print(f"Not generating for column {column_name}: {e}")
                 except Exception as e:
                     print(f"Error while generating for column {column_name}: {e}")
+                pbar.update(1)
+
 
 if __name__ == "__main__":
     parquet_input = sys.argv[1]
     cpus = int(sys.argv[2])
-    total_memory = int(float(sys.argv[3]))
-
+    mem_per_cpu = float(sys.argv[3])
+    total_memory = int(cpus * mem_per_cpu)
+    
     print(f"[INFO] Input Parquet: {parquet_input}")
-    print(f"[INFO] CPUs: {cpus}")
+    print(f"[INFO] CPUs: {cpus}, Memory per CPU: {mem_per_cpu} GB")
     print(f"[INFO] Total memory allocated: {total_memory} GB")
 
     generate_pdf_dictionary_duckdb(parquet_input, total_memory)
