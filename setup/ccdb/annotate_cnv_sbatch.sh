@@ -74,7 +74,6 @@ fi
 # Load modules
 module load java
 module load python/3.13.2
-module load nextflow
 export NXF_OFFLINE=true
 
 # If SLURM_TMPDIR is not set, fallback to system temp dir
@@ -88,7 +87,7 @@ pip install --no-index --upgrade pip
 pip install --no-index polars
 
 # Run Nextflow pipeline
-nextflow run "${git_dir}/main.nf" --cnvs "$cnv_input_file" \
+/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/bioutils/bin/nextflow run "${git_dir}/main.nf" --cnvs "$cnv_input_file" \
     --genome_version "$genome_version" \
     --cohort_tag "$cohort_tag" \
     -c "${git_dir}/setup/ccdb/ccdb.config" \
