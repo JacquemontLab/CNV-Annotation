@@ -97,10 +97,10 @@ check_java_version() {
     local version
     version=$(java -version 2>&1 | awk -F[\".] '/version/ {print $2}')
     if [[ "$version" -ge 17 ]]; then
-        echo "✅ Java version $version detected"
+        echo "✅  Java version $version detected"
         return 0
     else
-        echo "⚠️ Java version $version is too old, need 17+"
+        echo "⚠️  Java version $version is too old, need 17+"
         return 1
     fi
 }
@@ -184,10 +184,10 @@ fi
 #         popd > /dev/null
 #         add_to_path_once 'export PATH="$HOME/ensembl-vep:$PATH"'
 #         export PATH="$HOME/ensembl-vep:$PATH"
-#         echo "✅ VEP 113 installed."
+#         echo "✅  VEP 113 installed."
 #     fi
 # else
-#     echo "✅ VEP already installed."
+#     echo "✅  VEP already installed."
 #fi
 
 # --- Download VEP Cache ---
@@ -204,7 +204,7 @@ if [[ ! -d "$cache_dir" ]]; then
     curl -o "$cache_path" "https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/${cache_file}"
     tar -xzf "$cache_path" -C "$RESOURCE_DIR"
 else
-    echo "✅ VEP cache for${GENOME_ASSEMBLY} already exists at $cache_dir"
+    echo "✅  VEP cache for${GENOME_ASSEMBLY} already exists at $cache_dir"
 fi
 
 
@@ -251,11 +251,11 @@ pushd ressources_LOEUF > /dev/null
 if [[ ! -f "gnomad.v4.1.constraint_metrics.tsv" ]]; then
     curl -O "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv"
 else
-    echo "✅ Constraint metrics already downloaded."
+    echo "✅  Constraint metrics already downloaded."
 fi
 
 popd > /dev/null  # Exit ressources_LOEUF
 popd > /dev/null  # Exit RESOURCE_DIR
 
-echo "✅ All downloads complete."
-echo "🎉 Setup finished successfully!"
+echo "✅  All downloads complete."
+echo "🎉  Setup finished successfully!"
