@@ -51,6 +51,9 @@ region_df = pl.scan_csv(
 )
 
 # --- Merge on CNV_ID ---
+if "ProblematicRegions_Overlap" in df.columns:
+    df = df.drop("ProblematicRegions_Overlap")
+    
 df = df.join(region_df, on="CNV_ID", how="left")
 
 # --- Column order (IDs in front) ---

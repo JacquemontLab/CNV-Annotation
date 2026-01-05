@@ -138,17 +138,17 @@ Extract transcript entries and reduce to final output
 ```sql
 CREATE OR REPLACE TABLE inter AS (SELECT * FROM read_csv('pRegions_GRCh38.gtf.bed', delim = '\t', all_varchar = true) WHERE column02 == 'transcript');
 ALTER TABLE inter ADD COLUMN Transcript_ID VARCHAR;
-ALTER TABLE inter ADD COLUMN Transcript_problematic_regions_Overlap FLOAT;
+ALTER TABLE inter ADD COLUMN Transcript_ProblematicRegions_Overlap FLOAT;
 UPDATE inter SET Transcript_ID = regexp_extract(column08,  'transcript_id \"(.*?)\"',  1);
-UPDATE inter SET Transcript_problematic_regions_Overlap =  (CAST(column12 AS INTEGER) / (CAST(column04 AS INTEGER) - CAST(column03 AS INTEGER) + 1));
+UPDATE inter SET Transcript_ProblematicRegions_Overlap =  (CAST(column12 AS INTEGER) / (CAST(column04 AS INTEGER) - CAST(column03 AS INTEGER) + 1));
 
 COPY (
     SELECT tDB.*, 
-        inter_sum.Transcript_problematic_regions_Overlap,
+        inter_sum.Transcript_ProblematicRegions_Overlap,
     FROM ( 
         SELECT
             Transcript_ID,
-            SUM(Transcript_problematic_regions_Overlap) AS Transcript_problematic_regions_Overlap
+            SUM(Transcript_ProblematicRegions_Overlap) AS Transcript_ProblematicRegions_Overlap
                 FROM inter 
                 GROUP BY Transcript_ID 
             ) AS inter_sum
@@ -167,17 +167,17 @@ cp transcriptDB_GRCh37.parquet transcriptDB_GRCh37_BACKUP.parquet
 ```sql
 CREATE OR REPLACE TABLE inter AS (SELECT * FROM read_csv('pRegions_GRCh37.gtf.bed', delim = '\t', all_varchar = true) WHERE column02 == 'transcript');
 ALTER TABLE inter ADD COLUMN Transcript_ID VARCHAR;
-ALTER TABLE inter ADD COLUMN Transcript_problematic_regions_Overlap FLOAT;
+ALTER TABLE inter ADD COLUMN Transcript_ProblematicRegions_Overlap FLOAT;
 UPDATE inter SET Transcript_ID = regexp_extract(column08,  'transcript_id \"(.*?)\"',  1);
-UPDATE inter SET Transcript_problematic_regions_Overlap =  (CAST(column12 AS INTEGER) / (CAST(column04 AS INTEGER) - CAST(column03 AS INTEGER) + 1));
+UPDATE inter SET Transcript_ProblematicRegions_Overlap =  (CAST(column12 AS INTEGER) / (CAST(column04 AS INTEGER) - CAST(column03 AS INTEGER) + 1));
 
 COPY (
     SELECT tDB.*, 
-        inter_sum.Transcript_problematic_regions_Overlap,
+        inter_sum.Transcript_ProblematicRegions_Overlap,
     FROM ( 
         SELECT
             Transcript_ID,
-            SUM(Transcript_problematic_regions_Overlap) AS Transcript_problematic_regions_Overlap 
+            SUM(Transcript_ProblematicRegions_Overlap) AS Transcript_ProblematicRegions_Overlap 
                 FROM inter 
                 GROUP BY Transcript_ID 
             ) AS inter_sum

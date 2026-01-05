@@ -58,7 +58,7 @@ NR > 1 && $4 == "problematic_regions" && $5 == genome {
 
 
 # Format string to pass to overlap computation script
-regions_to_overlap="problematic_regions:$problematic_regions_db"
+regions_to_overlap="ProblematicRegions:$problematic_regions_db"
 
 
 # Annotate input CNV file with overlap metrics

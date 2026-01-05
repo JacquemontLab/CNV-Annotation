@@ -69,7 +69,7 @@ Minimally, there are two output tables:
 |int        | End                | End position.
 |string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |	
-|float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
+|float      | ProblematicRegions_Overlap  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
 |int        | sum_LOEUF              | Sum of the LOEUF values of canonical transcripts whose exons are overlapped by the CNV. |	
 |float      | Gnomad_Max_AF          | Maximum allele frequency of matching structural variant across populations. See section 'Gnomad_Max_AF'. |  
 |string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'. |	
@@ -98,7 +98,7 @@ Minimally, there are two output tables:
 | int       | Transcript_Start       | Start of the **transcript** (1-based, inclusive)                                   |	
 | int       | Transcript_Stop        | Stop of the **transcript** (1-based, inclusive)                                     |	
 | int       | Exon_count             | Number of exons in the transcript |	
-| float     | Transcript_problematic_regions_Overlap | The basepair percentage of overlap of the transcript with problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'. |  
+| float     | Transcript_ProblematicRegions_Overlap | The basepair percentage of overlap of the transcript with problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'. |  
 
 
 The relationship between the tables is based on **CNV_ID**. The **`cnvDB`** contains all CNVs, including duplicates across samples. In contrast, the **`geneDB`** contains CNVs **deduplicated prior to running VEP**. Any duplicates in this table arise only when a CNV affects multiple gene or transcript, but only **MANE or CANONICAL transcripts** are retained to reduce the database size. **Intergenic CNVs** are assigned to a gene if they fall within 5 kb of a gene’s start or stop codon. In such cases, a **consequence flag** indicates `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)).
