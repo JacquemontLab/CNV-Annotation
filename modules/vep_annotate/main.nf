@@ -114,6 +114,7 @@ process VEP_GRCh37 {
 
 // Integrates VEP output, gnomAD constraints (LOEUF), and transcript metadata.
 // Produces a compressed Parquet file containing genome-version metadata.
+// Filter to keep only transcripts with MANE or CANONICAL annotation
 process buildGeneDB {
     label 'polars_duckdb'
 
@@ -124,7 +125,8 @@ process buildGeneDB {
     val genome_version
 
     output:
-    path "geneDB.parquet"
+    path "geneDB.parquet", emit : geneDB
+    path "cnv_gnomAD.parquet", emit : cnv_gnomAD
 
     script:
     """
@@ -135,19 +137,28 @@ process buildGeneDB {
     # Formatting output
     gene_db.py tmp_db.parquet tmp_formatted.parquet
 
-    # Adding gnomad_constraints file via right join on geneDB using gene_IDs
+    # Extract distinct CNV IDs with their maximum gnomAD allele frequency
+    duckdb -c "
+    COPY (
+        SELECT DISTINCT CNV_ID, Gnomad_Max_AF
+        FROM read_parquet('tmp_formatted.parquet')
+    )
+    TO 'cnv_gnomAD.parquet' (FORMAT PARQUET);
+    "
+
+    # Adding LOEUF from gnomad_constraints file via right join on geneDB using gene_IDs
     duckdb -c "COPY ( 
                         SELECT geneDB.*, CAST(NULLIF(\\"lof.oe_ci.upper\\", 'NA') AS DOUBLE) AS LOEUF
                         FROM read_csv(\\"${gnomad_constraints}\\", delim = '\\t') AS gnomad
                         RIGHT JOIN (SELECT * FROM read_parquet('tmp_formatted.parquet')) AS geneDB ON geneDB.Transcript_ID = gnomad.transcript
-                        
         ) TO "tmp_gene_constraints.parquet" (FORMAT 'PARQUET');
     "
     
-    # Adding Transcript Metadata
+    # Adding Transcript Metadata and removing Gnomad_Max_AF column
+    # Filter to keep only transcripts with MANE or CANONICAL annotation
     duckdb -c "    COPY (
                     SELECT 
-                       geneDB.*,
+                       geneDB.* EXCLUDE (Gnomad_Max_AF),
                         tbl_transcript.Gene_Name AS Gene_Name,
                         tbl_transcript.Start AS Transcript_Start,
                         tbl_transcript.Stop AS Transcript_Stop,
@@ -156,13 +167,12 @@ process buildGeneDB {
                         FROM read_parquet(${transcript_metadata}) AS tbl_transcript
                         RIGHT JOIN read_parquet('tmp_gene_constraints.parquet') AS geneDB
                         USING (Transcript_ID)
+        WHERE geneDB.MANE IS NOT NULL OR geneDB.CANONICAL = TRUE
                 ) TO "geneDB.parquet" (FORMAT 'PARQUET');
     "
 
-
     """
 }
-
 
 
 
@@ -192,8 +202,9 @@ workflow VEP_ANNOTATE {
         vep_ch = VEP_GRCh37.out.results
     }
 
-    db = buildGeneDB(vep_ch, gnomad_constraints, transcript_metadata, genome_version)
+    buildGeneDB_ch = buildGeneDB(vep_ch, gnomad_constraints, transcript_metadata, genome_version)
 
     emit:
-    db
+    geneDB = buildGeneDB_ch.geneDB
+    cnv_gnomAD = buildGeneDB_ch.cnv_gnomAD
 }

@@ -14,7 +14,6 @@ Functionality:
     5. Counts matches between CNVs and recurrent CNVs.
     6. Identifies full matches and assigns rCNV_ID with type suffix.
     7. Generates a flagged CNV database with annotated recurrent CNVs.
-    8. Computes sample counts per recurrent CNV for downstream analysis.
 
 Inputs:
     --geneDB_path: Gene annotation database file (TSV, CSV, or Parquet)
@@ -24,7 +23,6 @@ Inputs:
 
 Outputs:
     --cnvDB_flagged_parquet: Flagged CNV database (Parquet)
-    --recurrent_sample_counts: Sample counts per recurrent CNV (TSV)
 
 Author:
     Florian Bénitière
@@ -198,26 +196,6 @@ def main(args):
     FROM recurrent;
     """)
 
-    # Now join and count
-    con.execute("""
-    CREATE OR REPLACE TABLE sample_rCNV_counts AS
-    SELECT 
-        r.rCNV_ID,
-        COALESCE(COUNT(DISTINCT c.SampleID), 0) AS num_samples
-    FROM recurrent_expanded r
-    LEFT JOIN cnvDB_flagged c
-        ON c.rCNV_ID = r.rCNV_ID
-    GROUP BY r.rCNV_ID
-    ORDER BY r.rCNV_ID;
-    """)
-    
-    # Save as TSV file
-    con.execute(f"""
-    COPY sample_rCNV_counts 
-    TO '{args.recurrent_sample_counts}' 
-    (HEADER, DELIMITER '\t');
-    """)
-    
     print("Processing complete!")
 
 
@@ -227,7 +205,6 @@ if __name__ == "__main__":
     parser.add_argument("--cnvDB_path", required=True, help="Input cnvDB file (TSV or Parquet)")
     parser.add_argument("--recurrent_path", required=True, help="Input recurrent CNV gene set file (TSV)")
     parser.add_argument("--cnvDB_flagged_parquet", required=True, help="Output path for flagged cnvDB Parquet file")
-    parser.add_argument("--recurrent_sample_counts", required=True, help="Output path for recurrent sample counts TSV")
     parser.add_argument("--genome_version", required=True, choices=["GRCh37", "GRCh38"], help="Genome version to use")
     args = parser.parse_args()
 

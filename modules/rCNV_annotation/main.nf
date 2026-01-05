@@ -8,8 +8,7 @@
 //   - recurrent_path: path to a TSV file containing recurrent CNV gene sets
 //   - genome_version: genome build to use (e.g., GRCh37 or GRCh38)
 // Outputs:
-//   - cnvDB.parquet: CNV database annotated with flagged recurrent CNVs
-//   - rCNV_sample_counts.tsv: table of sample counts per recurrent CNV
+//   - cnvDB_rCNV.parquet: CNV database annotated with flagged recurrent CNVs
 process annotate_rCNV {
     label 'polars_duckdb'
 
@@ -20,8 +19,7 @@ process annotate_rCNV {
     val genome_version
 
     output:
-    path 'cnvDB.parquet', emit : cnvDB_rCNV
-    path 'rCNV_sample_counts.tsv', emit : rCNV_sample_counts
+    path 'cnvDB_rCNV.parquet', emit : cnvDB_rCNV
 
     script:
     """
@@ -29,8 +27,7 @@ process annotate_rCNV {
         --geneDB_path ${geneDB} \
         --cnvDB_path ${cnvDB} \
         --recurrent_path ${recurrent_path} \
-        --cnvDB_flagged_parquet cnvDB.parquet \
-        --recurrent_sample_counts rCNV_sample_counts.tsv \
+        --cnvDB_flagged_parquet cnvDB_rCNV.parquet \
         --genome_version ${genome_version}
     """
 }
@@ -52,11 +49,6 @@ workflow RCNV_ANNOTATION {
     // Call the process; returns a map of emitted outputs
     results = annotate_rCNV(cnvDB, geneDB, recurrent_path, genome_version)
 
-    // Assign each emitted output to a variable
-    cnvDB_rCNV = results.cnvDB_rCNV
-    rCNV_sample_counts = results.rCNV_sample_counts
-
     emit:
-    cnvDB_rCNV
-    rCNV_sample_counts
+    cnvDB_rCNV = results.cnvDB_rCNV
 }

@@ -59,4 +59,4 @@ order = (["CNV_ID", "SampleID"] +
 df = df.select(order)
 
 # --- Save ---
-df.sink_parquet(output, compression="zstd")
+df.sink_parquet(output)

@@ -1,22 +1,31 @@
 #!/usr/bin/env nextflow
 
+
 /*
-CNV_DB_Builder Nextflow Workflow
---------------------------------
-This workflow performs the following steps:
+CNV_DB_Builder Nextflow Pipeline
+================================
 
-1. Identify unique CNVs to reduce redundant queries for VEP annotation.
-2. Compute overlap of CNVs with genomic regions.
-3. Build a CNV database (Parquet format) combining CNV data with region annotations.
-4. Annotate CNVs using VEP (Variant Effect Predictor) and generate LOEUF reports.
-5. Produce summary PDFs for CNV and gene data.
-6. Generate a run summary including duration, input, and output info.
+Description
+-----------
+Builds an annotated CNV (copy-number variant) database from input CNVs. 
+Reduces redundancy by identifying unique CNVs, annotates them with VEP, 
+computes overlaps with genomic regions, aggregates LOEUF scores, integrates 
+recurrent CNVs, and produces CNV- and gene-level PDF reports.
 
-Requirements:
-- Nextflow DSL2
-- Python scripts: prepare_cnvs_vep.py, add_regions_overlap.sh, format_overlap.sh, merge_cnv_with_region.py, pdf_dictionnary.py
-- Polars library for Python
-- VEP cache directory
+Workflow Steps
+--------------
+1. Identify unique CNVs to minimize redundant annotation.
+2. Annotate CNVs using VEP (functional and gnomAD metrics).
+3. Compute overlaps with genomic regions.
+4. Aggregate LOEUF scores per CNV.
+5. Build the CNV database (Parquet format).
+6. Add recurrent CNV annotations.
+7. Generate PDF reports and a global workflow summary.
+
+Usage
+-----
+nextflow run main.nf --cnvs path/to/cnvs.tsv --regions path/to/regions.bed \
+  --genome_version GRCh38 --vep_cache /path/to/vep_cache --outdir results
 */
 
 nextflow.enable.dsl=2
@@ -51,8 +60,7 @@ switch (params.genome_version) {
 
 // Include external modules for VEP annotation and LOEUF report generation
 include { VEP_ANNOTATE } from './modules/vep_annotate'
-include { LOEUF_REPORT } from './modules/CNV_LOEUF'
-include { sum_loeuf_cnv } from './modules/CNV_LOEUF'
+include { sum_loeuf_gnomAD_cnv } from './modules/CNV_LOEUF_gnomAD'
 include { RCNV_ANNOTATION } from './modules/rCNV_annotation'
 
 
@@ -64,11 +72,12 @@ process identifyUniqCNV {
     path cnvs 
 
     output:
-    path "uniq_cnvs.bed"
+    path "uniq_cnvs.bed", emit: uniq_cnv_bed
+    path "uniq_cnvs.parquet", emit: uniq_cnv_parquet
 
     script:
     """
-    prepare_cnvs_vep.py ${cnvs} "uniq_cnvs.bed"
+    prepare_cnvs_vep.py ${cnvs} "uniq_cnvs.bed" "uniq_cnvs.parquet"
     """
 }
 
@@ -106,14 +115,38 @@ process buildCnvDB {
     input:
     path cnvs
     path region_overlap
+    path sum_loeuf_gnomAD_cnv
+    path cnvDB_rCNV
 
     output:
-    path "cnvDB_region.parquet"
+    path "cnvDB.parquet"
 
     script:
     """
-    # Adding Overlap Region
+    # Step 1: Build CNV regions with overlap
     merge_cnv_with_region.py ${cnvs} ${region_overlap} cnvDB_region.parquet
+
+    # Step 2: Merge with sum_loeuf_gnomAD_cnv database on CNV_ID
+    duckdb -c "
+        COPY (
+        SELECT r.*, c.sum_LOEUF, c.Gnomad_Max_AF
+        FROM read_parquet('cnvDB_region.parquet') AS r
+        LEFT JOIN read_parquet('${sum_loeuf_gnomAD_cnv}') AS c
+        USING (CNV_ID)
+        )
+        TO 'cnvDB_tmp.parquet' (FORMAT PARQUET);
+    "
+
+    # Step 3: Merge with rCNV database on CNV_ID
+    duckdb -c "
+        COPY (
+        SELECT r.*, c.rCNV_ID
+        FROM read_parquet('cnvDB_tmp.parquet') AS r
+        LEFT JOIN read_parquet('${cnvDB_rCNV}') AS c
+        USING (CNV_ID)
+        )
+        TO 'cnvDB.parquet' (FORMAT PARQUET);
+    "
     """
 }
 
@@ -230,59 +263,54 @@ workflow {
         // Step 1: Identify unique CNVs to reduce redundancy before annotation
         uniq_cnv_ch = identifyUniqCNV(cnvs_ch)
 
-        // Step 2: Compute overlaps of CNVs with genomic regions
-        computeOverlapRegion(uniq_cnv_ch, params.genome_version, params.genomic_regions)
-
-        // Step 3: Merge CNVs with overlap information into a CNV database (Parquet format)
-        buildCnvDB(cnvs_ch, computeOverlapRegion.out)
-
-        // Step 4: Annotate CNVs using VEP (Variant Effect Predictor)
+        // Step 2: Annotate CNVs using VEP (Variant Effect Predictor)
         VEP_ANNOTATE(
-            uniq_cnv_ch,
+            uniq_cnv_ch.uniq_cnv_bed,
             params.genome_version,
             params.vep_cache, 
             gnomad_AF,
             gnomad_constraints
         )
 
-        // Step 5: Generate LOEUF-related figure using CNV DB and VEP annotation results
-        LOEUF_REPORT(
-            gnomad_constraints, //loeuf_metadata
-            buildCnvDB.out,     //cnvDB
-            VEP_ANNOTATE.out    //geneDB
-        )
-        
-        sum_loeuf_cnv(
-            buildCnvDB.out,
-            VEP_ANNOTATE.out)
+        // Step 3: Compute overlaps of CNVs with genomic regions
+        computeOverlapRegion(uniq_cnv_ch.uniq_cnv_bed, params.genome_version, params.genomic_regions)
 
+        // Step 4: Compute sum of LOEUF values for CNVs and add gnomAD Max AF       
+        sum_loeuf_gnomAD_cnv(
+            uniq_cnv_ch.uniq_cnv_parquet,
+            VEP_ANNOTATE.out.geneDB,
+            VEP_ANNOTATE.out.cnv_gnomAD)
+
+        // Step 5: Annotate CNVs with recurrent CNV information
         RCNV_ANNOTATION(
-            sum_loeuf_cnv.out,
-            VEP_ANNOTATE.out,
+            uniq_cnv_ch.uniq_cnv_parquet,
+            VEP_ANNOTATE.out.geneDB,
             params.recurrent_path,
             params.genome_version)
 
-        // Step 6: Produce PDF reports for CNV and gene annotation results
-        pdf_cnv_ch = producePDFWorkflowCNV(RCNV_ANNOTATION.out.cnvDB_rCNV)
-        pdf_gene_ch = producePDFWorkflowGene(VEP_ANNOTATE.out)
+        // Step 6: Merge CNVs with overlap information into a CNV database (Parquet format)
+        buildCnvDB(cnvs_ch, computeOverlapRegion.out, sum_loeuf_gnomAD_cnv.out, RCNV_ANNOTATION.out.cnvDB_rCNV)
+
+        // Step 7: Produce PDF reports for CNV and gene annotation results
+        pdf_cnvDB = producePDFWorkflowCNV(buildCnvDB.out)
+        pdf_geneDB = producePDFWorkflowGene(VEP_ANNOTATE.out.geneDB)
         
-        // Step 7: Build a general summary report for the workflow run
+        // Step 8: Build a general summary report for the workflow run
         buildSummary(
             params.cohort_tag,
             params.cnvs,
             params.genome_version,
             params.git_hash,
-            pdf_cnv_ch
+            pdf_cnvDB
         )
 
     // --- Publish outputs ---
     publish:
-        cnv_db       = RCNV_ANNOTATION.out.cnvDB_rCNV          // Final CNV database
-        gene_db      = VEP_ANNOTATE.out        // Annotated gene database
-        summary      = buildSummary.out        // General workflow summary
-        pdf_cnv      = pdf_cnv_ch              // CNV PDF report
-        pdf_gene     = pdf_gene_ch             // Gene annotation PDF report
-        loeuf_figure = LOEUF_REPORT.out        // LOEUF figures
+        cnv_db       = buildCnvDB.out                     // Final CNV database
+        gene_db      = VEP_ANNOTATE.out.geneDB            // Annotated gene database
+        summary      = buildSummary.out                   // General workflow summary
+        pdf_cnv      = pdf_cnvDB                          // CNV PDF report
+        pdf_gene     = pdf_geneDB                         // Gene annotation PDF report
 }
 
 
@@ -313,8 +341,4 @@ output {
         path "${params.cohort_tag}/docs/"
     }
 
-    loeuf_figure {
-        mode 'copy'
-        path "${params.cohort_tag}/docs/"
-    }
 }

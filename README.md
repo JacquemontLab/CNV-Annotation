@@ -70,8 +70,9 @@ Minimally, there are two output tables:
 |string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |	
 |float      | problematic_regions_Overlap  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
-|int        | sum_LOEUF              | Sum of the LOEUF values of canonical transcripts whose exons are overlapped by the CNV.      |	
-|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'.      |	
+|int        | sum_LOEUF              | Sum of the LOEUF values of canonical transcripts whose exons are overlapped by the CNV. |	
+|float      | Gnomad_Max_AF          | Maximum allele frequency of matching structural variant across populations. See section 'Gnomad_Max_AF'. |  
+|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'. |	
 
 
 
@@ -92,7 +93,6 @@ Minimally, there are two output tables:
 |string     | INTRON              | String representation of the introns impacted by the CNV formatted as "<start_intron>-<end_intron>/<intron_count>" |
 |float      | Exon_Overlap        | Number of exons overlapped by the CNV divided by the total number of exons in the transcript. See notes |
 |float      | Transcript_Overlap  | Fraction of the transcript overlapped by the CNV. |
-|float      | Gnomad_Max_AF       | Maximum allele frequency of matching structural variant across populations. See notes. |  
 |float 	    | LOEUF		          | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained) for the given transcript_ID |	
 | string    | Gene_Name              | Gene name corresponding to the Gene_ID |	
 | int       | Transcript_Start       | Start of the **transcript** (1-based, inclusive)                                   |	
@@ -100,7 +100,8 @@ Minimally, there are two output tables:
 | int       | Exon_count             | Number of exons in the transcript |	
 | float     | Transcript_problematic_regions_Overlap | The basepair percentage of overlap of the transcript with problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'. |  
 
-The relationship between the tables relies on the CNV_ID. In the __cnvDB__, all CNVs are present, regardless of duplicates across samples. The __geneDB__ has CNVs that are deduplicated prior to running VEP. All duplicated CNVs are therefore a product of multiple transcripts belonging to the same gene. Intergenic CNVs will also be reported as either NULL in the Gene_ID column or be assigned to a gene if within 5kb of a Start/Stop codon. In the latter case, a consequence flag will be present ('upstream_gene_variant' or 'downstream_gene_variant') 
+
+The relationship between the tables is based on **CNV_ID**. The **`cnvDB`** contains all CNVs, including duplicates across samples. In contrast, the **`geneDB`** contains CNVs **deduplicated prior to running VEP**. Any duplicates in this table arise only when a CNV affects multiple gene or transcript, but only **MANE or CANONICAL transcripts** are retained to reduce the database size. **Intergenic CNVs** are assigned to a gene if they fall within 5 kb of a gene’s start or stop codon. In such cases, a **consequence flag** indicates `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)).
 
 
 
@@ -129,7 +130,7 @@ The **LOEUF** corresponds to the `lof.oe_ci.upper` value of the associated `Tran
 
 #### Gnomad_Max_AF 
 
-Gnomad Allele Frequency (AF) annotations  for structural variants (SVs) are specific to the genome version.
+Gnomad Allele Frequency (AF) annotations for structural variants (SVs) are specific to the genome version.
 
  __GRCh38__ uses Gnomad V4 SV sites derived from WGS. The file was downloaded from here: https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/genome_sv/gnomad.v4.1.sv.sites.vcf.gz
  

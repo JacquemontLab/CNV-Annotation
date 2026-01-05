@@ -22,7 +22,8 @@ import sys
 
 
 input_file = sys.argv[1]
-output_file = sys.argv[2]
+output_file_bed = sys.argv[2]
+output_file_parquet = sys.argv[3]
 
 
 df = pl.scan_csv(input_file, separator = "\t", infer_schema_length=10000)
@@ -44,8 +45,25 @@ df = df.select([
     pl.lit(".").alias("Strand")
 ])
 
-# Final selection, deduplication, sorting and output
-(df.select(["Chr", "Start", "End", "Type", "Strand"])
-   .unique(keep="any")
-   .sort(by=["Chr", "Start", "End"])
-   .sink_csv(output_file, separator="\t", include_header=False))
+
+# --- Add CNV_ID (Chr_Start_End_Type) ---
+df = df.with_columns(
+    pl.concat_str([
+        pl.col("Chr"),
+        pl.col("Start").cast(pl.Utf8),
+        pl.col("End").cast(pl.Utf8),
+        pl.col("Type")
+    ], separator="_").alias("CNV_ID")
+)
+
+# --- Keep only unique CNV_IDs and sort by Chr, Start, End ---
+df_unique = df.select(["Chr", "Start", "End", "Type", "Strand", "CNV_ID"]) \
+              .unique(subset="CNV_ID", keep="any") \
+              .sort(["Chr", "Start", "End"])
+
+# --- Write TSV without header ---
+df_unique.select(["Chr", "Start", "End", "Type", "Strand"]) \
+         .sink_csv(output_file_bed, separator="\t", include_header=False)
+
+# --- Write Parquet (full data with CNV_ID) ---
+df_unique.sink_parquet(output_file_parquet)
