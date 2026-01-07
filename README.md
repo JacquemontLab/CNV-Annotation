@@ -78,7 +78,7 @@ Minimally, there are two output tables:
 
 #### **geneDB.parquet**
 
-| __dTYPE__ | __Column__ | __Description__                                    |
+| __Data type__ | __Column__ | __Description__                                    |
 | --------- | -----------| -------------------------------------------------- |
 |string     | **CNV_ID**              | ID of the CNV in the format of 'Chr_Start_End_Type'|
 |string     | **Location**            | Location ID from VEP.                               |
@@ -106,7 +106,7 @@ Minimally, there are two output tables:
 * The **CNV\_ID** links the `cnvDB` and `geneDB` tables.
 * `cnvDB` contains all CNVs, including duplicates across samples.
 * `geneDB` contains deduplicated CNVs prior to running VEP. Any duplicates in this table arise only when a CNV affects multiple gene or transcript, but only **MANE or CANONICAL transcripts** are retained to reduce the database size.
-* Intergenic CNVs are either NULL in `Gene_ID` or assigned to the nearest gene within 5kb of a start/stop codon, with a consequence flag: `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html))..
+* Intergenic CNVs are either NULL in `Gene_ID` or assigned to the nearest gene within 5kb of a start/stop codon, with a consequence flag: `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)).
 
 
 ### Notes
