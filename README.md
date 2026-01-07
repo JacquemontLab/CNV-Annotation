@@ -60,49 +60,53 @@ Minimally, there are two output tables:
 
 #### **cnvDB.parquet**
 
-| __dTYPE__ | __Column__ | __Description__                                    | 
-|:--------- | -----------| -------------------------------------------------- |
-|string     | CNV_ID             | ID of the CNV in the format of 'Chr_Start_End_Type'|
-|string     | SampleID           | Cohort Specific ID for individual samples          |
-|string     | Chr                | Chromosome      |
-|int        | Start              | Start position. Ideally coordinates should match ensembl in that they are 1-based and inclusive.|
-|int        | End                | End position.
-|string     | Type               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
+| __Data type__ | __Column__ | __Description__                                    | 
+| --------- | -----------| -------------------------------------------------- |
+|string     | **CNV_ID**             | ID of the CNV in the format of 'Chr_Start_End_Type'|
+|string     | **SampleID**           | Cohort Specific ID for individual samples          |
+|string     | **Chr**                | Chromosome      |
+|int        | **Start**              | Start position. Ideally coordinates should match ensembl in that they are 1-based and inclusive.|
+|int        | **End**                | End position.
+|string     | **Type**               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |	
-|float      | ProblematicRegions_Overlap  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
-|int        | sum_LOEUF              | Sum of the LOEUF values of canonical transcripts whose exons are overlapped by the CNV. |	
-|float      | Gnomad_Max_AF          | Maximum allele frequency of matching structural variant across populations. See section 'Gnomad_Max_AF'. |  
-|string     | rCNV_ID                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'. |	
+|float      | **ProblematicRegions_Overlap**  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
+|int        | **sum_LOEUF**              | Sum of the LOEUF values of canonical transcripts whose exons are overlapped by the CNV. |	
+|float      | **Gnomad_Max_AF**          | Maximum allele frequency of matching structural variant across populations. See section 'Gnomad_Max_AF'. |  
+|string     | **rCNV_ID**                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'. |	
 
 
 
 #### **geneDB.parquet**
 
 | __dTYPE__ | __Column__ | __Description__                                    |
-|:--------- | -----------| -------------------------------------------------- |
-|string     | CNV_ID              | ID of the CNV in the format of 'Chr_Start_End_Type'|
-|string     | Location            | Location ID from VEP.                               |
-|string     | Allele              | CNV type. Either __'DEL'__ or __'DUP'__                    |
-|string     | Gene_ID             | Ensembl ID of the __gene__ |
-|string     | Transcript_ID       | Ensembl ID of the __transcript__ |
-|string[]   | Consequence         | String list of Gene disruptions annotated by VEP.   | 
-|string     | BIOTYPE             | Transcript classification.                 |
-|boolean    | CANONICAL           | Transcript level canonical flag.                 |
-|string     | MANE                | Matched Annotation from NCBI and EMBL-EBI (MANE) flag. [https://www.ncbi.nlm.nih.gov/refseq/MANE/](https://www.ncbi.nlm.nih.gov/refseq/MANE/). ⚠️ __Only available in GRCh38__ |
-|string     | EXON                | String representation of the exons impacted by the CNV in the format of "<start_exon>-<end_exon>/<exon_count>" | 
-|string     | INTRON              | String representation of the introns impacted by the CNV formatted as "<start_intron>-<end_intron>/<intron_count>" |
-|float      | Exon_Overlap        | Number of exons overlapped by the CNV divided by the total number of exons in the transcript. See notes |
-|float      | Transcript_Overlap  | Fraction of the transcript overlapped by the CNV. |
-|float 	    | LOEUF		          | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained) for the given transcript_ID |	
-| string    | Gene_Name              | Gene name corresponding to the Gene_ID |	
-| int       | Transcript_Start       | Start of the **transcript** (1-based, inclusive)                                   |	
-| int       | Transcript_Stop        | Stop of the **transcript** (1-based, inclusive)                                     |	
-| int       | Exon_count             | Number of exons in the transcript |	
-| float     | Transcript_ProblematicRegions_Overlap | The basepair percentage of overlap of the transcript with problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'. |  
+| --------- | -----------| -------------------------------------------------- |
+|string     | **CNV_ID**              | ID of the CNV in the format of 'Chr_Start_End_Type'|
+|string     | **Location**            | Location ID from VEP.                               |
+|string     | **Allele**              | CNV type. Either __'DEL'__ or __'DUP'__                    |
+|string     | **Gene_ID**             | Ensembl ID of the __gene__ |
+|string     | **Transcript_ID**       | Ensembl ID of the __transcript__ |
+|string[]   | **Consequence**         | String list of Gene disruptions annotated by VEP.   | 
+|string     | **BIOTYPE**             | Transcript classification.                 |
+|boolean    | **CANONICAL**           | Transcript level canonical flag.                 |
+|string     | **MANE**                | Matched Annotation from NCBI and EMBL-EBI (MANE) flag. [https://www.ncbi.nlm.nih.gov/refseq/MANE/](https://www.ncbi.nlm.nih.gov/refseq/MANE/). ⚠️ __Only available in GRCh38__ |
+|string     | **EXON**                | String representation of the exons impacted by the CNV in the format of "<start_exon>-<end_exon>/<exon_count>" | 
+|string     | **INTRON**              | String representation of the introns impacted by the CNV formatted as "<start_intron>-<end_intron>/<intron_count>" |
+|float      | **Exon_Overlap**        | Number of exons overlapped by the CNV divided by the total number of exons in the transcript. See notes |
+|float      | **Transcript_Overlap**  | Fraction of the transcript overlapped by the CNV. |
+|float 	    | **LOEUF**		          | From gnomAD V4:upper bound of 90% confidence interval for o/e ratio for high confidence pLoF variants (lower values indicate more constrained) for the given transcript_ID |	
+| string    | **Gene_Name**              | Gene name corresponding to the Gene_ID |	
+| int       | **Transcript_Start**       | Start of the **transcript** (1-based, inclusive)                                   |	
+| int       | **Transcript_Stop**        | Stop of the **transcript** (1-based, inclusive)                                     |	
+| int       | **Exon_count**             | Number of exons in the transcript |	
+| float     | **Transcript_ProblematicRegions_Overlap** | The basepair percentage of overlap of the transcript with problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'. |  
 
 
-The relationship between the tables is based on **CNV_ID**. The **`cnvDB`** contains all CNVs, including duplicates across samples. In contrast, the **`geneDB`** contains CNVs **deduplicated prior to running VEP**. Any duplicates in this table arise only when a CNV affects multiple gene or transcript, but only **MANE or CANONICAL transcripts** are retained to reduce the database size. **Intergenic CNVs** are assigned to a gene if they fall within 5 kb of a gene’s start or stop codon. In such cases, a **consequence flag** indicates `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)).
+### Notes on relationships between tables
 
+* The **CNV\_ID** links the `cnvDB` and `geneDB` tables.
+* `cnvDB` contains all CNVs, including duplicates across samples.
+* `geneDB` contains deduplicated CNVs prior to running VEP. Any duplicates in this table arise only when a CNV affects multiple gene or transcript, but only **MANE or CANONICAL transcripts** are retained to reduce the database size.
+* Intergenic CNVs are either NULL in `Gene_ID` or assigned to the nearest gene within 5kb of a start/stop codon, with a consequence flag: `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html))..
 
 
 ### Notes
