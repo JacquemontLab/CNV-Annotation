@@ -34,7 +34,7 @@ For a given rCNV, its geneset is constructed based on the protein-coding canonic
 
 #### Supplementary
 
-- /docs/frequency_comparison.xlsx contains rCNV frequency compiled by Cecile Poulain, from different analysis/papers.
+- /docs/_comparison.xlsx contains rCNV frequency (in percentage) compiled by Cecile Poulain, from different analysis/papers.
 * Cécile Poulain’s response to reviewer (labelled: **supp\_cecile\_2025**)
 * Kendall et al., 2019: [PMC6520248, Supplementary Table 2](https://pmc.ncbi.nlm.nih.gov/articles/PMC6520248/#sec4) (labelled: **Kendall et al., 2019**)
 * Crawford et al., 2019: [JMG, Supplementary Table 4](https://jmg.bmj.com/content/56/3/131.long) (labelled: **Crawford et al., 2019**)
