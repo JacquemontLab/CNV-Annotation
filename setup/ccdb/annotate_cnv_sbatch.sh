@@ -26,7 +26,7 @@
 # ------------------------------------------------------------------------------
 
 
-#SBATCH --job-name=cnvDB_Buider    # Job name
+#SBATCH --job-name=cnvDB_Annotation    # Job name
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --ntasks=1                    # Run on a single CPU
 #SBATCH --cpus-per-task=64
