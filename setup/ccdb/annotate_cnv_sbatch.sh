@@ -67,10 +67,6 @@ if [ ! -f "${git_dir}/main.nf" ]; then
   exit 1
 fi
 
-# Get script directory local
-# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-
 # Load modules
 module load java
 module load python/3.13.2
