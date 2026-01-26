@@ -15,7 +15,7 @@
 #   annotate_cnv_sbatch.sh \
 #     -i <CNV_TSV_FILE> \
 #     -g <GENOME_VERSION> \
-#     -c <COHORT_TAG> \
+#     -c <DATASET_NAME> \
 #     -d <GIT_DIR>
 #
 # Example:
@@ -33,10 +33,10 @@ while getopts "i:g:c:d:" opt; do
   case "${opt}" in
     i) cnv_input_file="${OPTARG}" ;;
     g) genome_version="${OPTARG}" ;;
-    c) cohort_tag="${OPTARG}" ;;
+    c) dataset_name="${OPTARG}" ;;
     d) git_dir="${OPTARG}" ;;
     *)
-      echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <COHORT_TAG> -d <GIT_DIR>"
+      echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <DATASET_NAME> -d <GIT_DIR>"
       exit 1
       ;;
   esac
@@ -45,9 +45,9 @@ done
 # ------------------------------------------------------------------------------
 # Validation
 # ------------------------------------------------------------------------------
-if [[ -z "${cnv_input_file}" || -z "${genome_version}" || -z "${cohort_tag}" ]]; then
+if [[ -z "${cnv_input_file}" || -z "${genome_version}" || -z "${dataset_name}" ]]; then
   echo "❌ Error: Missing required arguments."
-  echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <COHORT_TAG> -d <GIT_DIR>"
+  echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <DATASET_NAME> -d <GIT_DIR>"
   exit 1
 fi
 
@@ -69,7 +69,7 @@ nextflow run \
   "${git_dir}/main.nf" \
   --cnvs "${cnv_input_file}" \
   --genome_version "${genome_version}" \
-  --cohort_tag "${cohort_tag}" \
+  --dataset_name "${dataset_name}" \
   -c "${git_dir}/setup/allofus/allofus.config" \
   -with-report report.html \
   -resume

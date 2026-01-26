@@ -12,14 +12,14 @@
 #   - Type
 #
 # Usage:
-#   sbatch annotate_cnv_sbatch.sh -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <COHORT_TAG>
+#   sbatch annotate_cnv_sbatch.sh -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <DATASET_NAME>
 #
 # Inputs:
 #   -d <GIT_DIR>        Path to the root of the repository containing `main.nf` and configs.
 #   -i <CNV_TSV_FILE>   Path to a TSV file containing CNVs. Must include columns:
 #                        SampleID, Chr, Start, End, Type. Additional columns are preserved.
 #   -g <GENOME_VERSION>  Genome build (e.g., GRCh37, GRCh38) to use for annotation.
-#   -c <COHORT_TAG>      Identifier for the cohort (used in annotation and output naming).
+#   -c <DATASET_NAME>      Identifier for the cohort (used in annotation and output naming).
 #
 # Example usage:
 #   sbatch annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-Annotation
@@ -46,18 +46,18 @@ while getopts "i:g:c:d:" opt; do
   case $opt in
     i) cnv_input_file="$OPTARG" ;;
     g) genome_version="$OPTARG" ;;
-    c) cohort_tag="$OPTARG" ;;
+    c) dataset_name="$OPTARG" ;;
     d) git_dir="$OPTARG" ;;  # overrides default if provided
-    *) echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <COHORT_TAG> -d <GIT_DIR>"
+    *) echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <DATASET_NAME> -d <GIT_DIR>"
        exit 1 ;;
   esac
 done
 
 
 # Check required arguments
-if [ -z "$cnv_input_file" ] || [ -z "$genome_version" ] || [ -z "$cohort_tag" ] || [ -z "$git_dir" ]; then
+if [ -z "$cnv_input_file" ] || [ -z "$genome_version" ] || [ -z "$dataset_name" ] || [ -z "$git_dir" ]; then
   echo "Error: Missing required arguments."
-  echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <COHORT_TAG> -d <GIT_DIR>"
+  echo "Usage: $0 -i <CNV_TSV_FILE> -g <GENOME_VERSION> -c <DATASET_NAME> -d <GIT_DIR>"
   exit 1
 fi
 
@@ -85,7 +85,7 @@ pip install --no-index polars
 # Run Nextflow pipeline
 /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/bioutils/bin/nextflow run "${git_dir}/main.nf" --cnvs "$cnv_input_file" \
     --genome_version "$genome_version" \
-    --cohort_tag "$cohort_tag" \
+    --dataset_name "$dataset_name" \
     -c "${git_dir}/setup/ccdb/ccdb.config" \
     -with-report report.html \
     -resume

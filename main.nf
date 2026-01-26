@@ -28,15 +28,14 @@ nextflow run main.nf --cnvs path/to/cnvs.tsv --regions path/to/regions.bed \
   --genome_version GRCh38 --vep_cache /path/to/vep_cache --outdir results
 */
 
-nextflow.enable.dsl=2
+nextflow.enable.dsl = 2
 nextflow.preview.output = true
-nextflow.enable.moduleBinaries = true
 
 // Get Git hash at workflow launch
 params.git_hash = "git -C ${projectDir} rev-parse HEAD".execute().text.trim()
 
 // Default VEP dir following install script
-params.vep_cache = "${projectDir}/resources"
+params.vep_cache = "${projectDir}/resources/vep_cache"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
 params.recurrent_path = "${projectDir}/resources/rCNV/geneset_per_rCNV.tsv"
 params.gnomad_dir = "${params.vep_cache}/homo_sapiens" 
@@ -171,7 +170,7 @@ process produceSummaryPDF {
 // Build a launch summary file with workflow metadata and timing
 process buildSummary {
     input:
-    val cohort_tag
+    val dataset_name
     val cnvs_path
     val genome_version
     val git_hash
@@ -196,7 +195,7 @@ process buildSummary {
     seconds=\$(( duration % 60 ))
 
     cat <<EOF > launch_report.txt
-    CNV_DB_Builder ${cohort_tag} run summary:
+    CNV_DB_Builder ${dataset_name} run summary:
     run name: ${workflow.runName}
     version: ${workflow.manifest.version}
     configs: ${workflow.configFiles}
@@ -297,7 +296,7 @@ workflow {
         
         // Step 8: Build a general summary report for the workflow run
         buildSummary(
-            params.cohort_tag,
+            params.dataset_name,
             params.cnvs,
             params.genome_version,
             params.git_hash,
@@ -318,27 +317,27 @@ workflow {
 output {
     cnv_db {
         mode 'copy'
-        path "${params.cohort_tag}/"
+        path "${params.dataset_name}/"
     }
 
     gene_db {
         mode 'copy'
-        path "${params.cohort_tag}/"
+        path "${params.dataset_name}/"
     }
 
     pdf_gene {
         mode 'copy'
-        path "${params.cohort_tag}/docs"
+        path "${params.dataset_name}/docs"
     }
 
     pdf_cnv {
         mode 'copy'
-        path "${params.cohort_tag}/docs"
+        path "${params.dataset_name}/docs"
     }
 
     summary {
         mode 'copy'
-        path "${params.cohort_tag}/docs/"
+        path "${params.dataset_name}/docs/"
     }
 
 }
