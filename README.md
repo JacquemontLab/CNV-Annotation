@@ -21,7 +21,7 @@ Required software:
 * **Nextflow** – workflow engine (nextflow version 25.10.2)
 * **Docker** (Apptainer or Singularity) – to run containers
 
-You might need to pull the following containers if working **offline**, or you can use conda (see nextflow.config):
+You might need to pull the following containers if working **offline**, or you can use conda (see `nextflow.config`):
 * **docker://ghcr.io/jacquemontlab/python_etl_packages:latest**
 * **docker://ghcr.io/jacquemontlab/ensembl_113:latest**
 
@@ -33,7 +33,7 @@ You might need to pull the following containers if working **offline**, or you c
 | `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | GRCh38     |
 | `--cnvs`           | TSV file containing CNVs. <details><summary>Format</summary><small>With at least `SampleID  Chr  Start  End  Type`.<br> `Type` is a string that must be either `"DEL"` or `"DUP"`. All other columns are preserved in the output.<br> `Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.</small></details>     | *Required* |
 | `--dataset_name`   | Name of the dataset, used for directory and report naming.    | dataset    |
-| `--vep_cache`      | Path to the VEP cache directory                               | ${projectDir}/resources |
+| `--vep_cache`      | Path to the VEP cache directory                               | ${projectDir}/resources/vep_cache |
 
 
 
@@ -41,9 +41,9 @@ You might need to pull the following containers if working **offline**, or you c
 
 ### Download required VEP cache files 
 
-Run the installation script to automatically download all reference resources required by the pipeline, including VEP cache files, gnomAD structural variant data, and constraint metrics, for the selected genome build (GRCh37 and GRCh38 only).
+Run the installation script to automatically download all reference resources required by the pipeline, including VEP cache files, gnomAD structural variant data, and constraint metrics, for the selected genome build (GRCh37 and GRCh38 only). This script can take quite some time >1 hour.
 
-From the root directory of the repository, run the following command (tabix and requirement should be provided by the Docker image):
+From the root directory of the repository, run the following command to save the data in `./resources/vep_cache` (tabix and requirement should be provided by the Docker image):
 
 ```bash
 docker run --rm -it \
@@ -68,7 +68,7 @@ nextflow run main.nf -profile test,${container}
 ```bash
 genome_version=GRCh38
 sample_file=tests/cnvs_10k.tsv
-vep_cache=$PWD/resources
+vep_cache=$PWD/resources/vep_cache
 
 nextflow run main.nf \
     --dataset_name dataset \
@@ -88,7 +88,7 @@ nextflow run main.nf \
 #                        SampleID, Chr, Start, End, Type. Additional columns are preserved.
 #   -g <GENOME_VERSION>  Genome build (e.g., GRCh37, GRCh38) to use for annotation.
 #   -c <DATASET_NAME>    Identifier for the dataset (used in annotation and output naming).
-sbatch CNV-Annotation/setup/ccdb/annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-Annotation
+sbatch CNV-Annotation/setup/ccdb/annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyDataset_Name -d /path/to/CNV-Annotation
 ```
 
 

@@ -35,7 +35,7 @@ nextflow.preview.output = true
 params.git_hash = "git -C ${projectDir} rev-parse HEAD".execute().text.trim()
 
 // Default VEP dir following install script
-params.vep_cache = "${projectDir}/resources"
+params.vep_cache = "${projectDir}/resources/vep_cache"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
 params.recurrent_path = "${projectDir}/resources/rCNV/geneset_per_rCNV.tsv"
 params.gnomad_dir = "${params.vep_cache}/homo_sapiens" 

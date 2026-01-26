@@ -58,5 +58,3 @@ process VEP {
 ```
 
 If starting resources are found in a bucket,  a -bucket-dir parameter can be specified in the command line options. 
-
-

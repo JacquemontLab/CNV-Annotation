@@ -9,7 +9,7 @@
 #               (the vep cache and gnomad files) into the resources folder. Otherwise the location can be specified uing the -r flag.
 #
 # Options:
-#   -r <path> : Path to the resource directory (default: ./resources)
+#   -r <path> : Path to the resource directory (default: ./resources/vep_cache)
 #
 # Requirements:
 #   - curl
@@ -36,7 +36,7 @@ log_step() {
 }
 
 # --- Default Parameters ---
-RESOURCE_DIR="$(git rev-parse --show-toplevel)/resources"
+RESOURCE_DIR="$(git rev-parse --show-toplevel)/resources/vep_cache"
 
 # --- Git-Variables
 GIT_PROJECT="CNV-Annotation"
@@ -45,7 +45,7 @@ GIT_PROJECT="CNV-Annotation"
 # --- Command-Line Argument Parser ---
 print_usage() {
     echo "Usage: $0 [-r <resource_dir>]"
-    echo "  -r   Path to the resource directory (default: ./resources)"
+    echo "  -r   Path to the resource directory (default: ./resources/vep_cache)"
     echo "  -g   Genome Version for VEP Cache. Either GRCh38 or GRCh37"
     echo "  -h   Show this help message"
 }
@@ -70,7 +70,7 @@ fi
 
 # ---  Checking if we are in the git repo if default resource path is being used ---
 #check if default is being used
-if [[ "$RESOURCE_DIR" == "$(git rev-parse --show-toplevel)/resources" ]]; then
+if [[ "$RESOURCE_DIR" == "$(git rev-parse --show-toplevel)/resources/vep_cache" ]]; then
         # check if we are in a git repo
         GIT_REPO=$(git rev-parse --show-toplevel 2>/dev/null)
         if [[ -n "$GIT_REPO" ]]; then
