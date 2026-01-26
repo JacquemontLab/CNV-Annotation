@@ -4,45 +4,81 @@
 
 # CNV-Annotation
 
-Nextflow pipeline for building a database from a single CNV file. The input that is expected is a TSV file with at least the following columns:
+## Overview
 
-```
-SampleID  Chr  Start  End  Type  [other columns preserved]
-```
+A reproducible Nextflow pipeline developed by the Jacquemont Lab for the systematic annotation of copy number variants (CNVs).  
+Starting from a single cohort-level CNV TSV file, the pipeline integrates genomic context, gene and transcript disruption, population frequency, constraint metrics, and known recurrent CNVs to produce analysis-ready databases in Parquet format.
 
-`Type` is a string that must be either `"DEL"` or `"DUP"`. All other columns are preserved in the output.
-`Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.
-
-### DAG
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="img/CNV-Annotation-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="img/CNV-Annotation-lite.png">
-  <img alt="Fallback image description" src="img/CNV-Annotation-lite.png" style="max-width:55%; height:auto;">
-</picture>
+The workflow is designed for large-scale cohort studies, supports both **GRCh37** and **GRCh38**, and prioritizes canonical and MANE transcripts to balance biological interpretability and database size.
 
 
+## Requirements
+
+Refer to the template config files and adjust them to match your infrastructure.
+
+Required software:
+
+* **Nextflow** – workflow engine (nextflow version 25.10.2)
+* **Docker** (Apptainer or Singularity) – to run containers
+
+You might need to pull the following containers if working **offline**, or you can use conda (see nextflow.config):
+* **docker://ghcr.io/jacquemontlab/python_etl_packages:latest**
+* **docker://ghcr.io/jacquemontlab/ensembl_113:latest**
 
 
-### Dependencies
+## Inputs
 
-The following software and packages are required to run the CNV-Annotation pipeline:
+| Parameter          | Description                                         | Default    |
+| ------------------ | --------------------------------------------------- | ---------- |
+| `--cnvs`           | TSV file containing CNVs. <details><summary>Format</summary><small>With at least `SampleID  Chr  Start  End  Type`.<br> `Type` is a string that must be either `"DEL"` or `"DUP"`. All other columns are preserved in the output.<br> `Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.</small></details>     | *Required* |
+| `--dataset_name`   | Name of the dataset, used for directory and report naming.    | dataset    |
+| `--vep_cache`      | Path to the VEP cache directory                               | ${projectDir}/resources |
+| `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | GRCh38     |
 
-* **Bedtools**
-* **Python** 3.13+
-* **polars** (Python library for DataFrames)
-* **duckdb** (Python library and CLI)
-* **VEP** 113 (Variant Effect Predictor)
-* **Nextflow** 25.04.2
 
-All dependencies can be installed automatically using the provided installation script:
+
+## Usage
+
+### Download required VEP cache files 
+
+Run the installation script to automatically download all reference resources required by the pipeline, including VEP cache files, gnomAD structural variant data, and constraint metrics, for the selected genome build (GRCh37 and GRCh38 only).
+
+From the root directory of the repository, run the following command (tabix and requirement should be provided by the Docker image):
 
 ```bash
-./INSTALL.sh -g GRCh38
+docker run --rm -it \
+  -v "$PWD":/project \
+  -w /project \
+  ghcr.io/jacquemontlab/tabix:latest \
+  bash INSTALL.sh -g GRCh38 -r /project
 ```
 
-### Running the CNV annotation pipeline
+### Testing
 
-Users on Compute Canada (CCDB, in the lab) are encouraged to refer directly to the script in setup/ccdb/annotate_cnv_sbatch.sh.
+The pipeline can be tested using the test profile and the images hosted on github using the container of your choice. 
+
+```bash
+container=docker # or apptainer or singularity
+
+nextflow run main.nf -profile test,${container}
+```
+
+### Example
+
+```bash
+genome_version=GRCh38
+sample_file=tests/cnvs_10k.tsv
+vep_cache=$PWD/resources
+
+nextflow run main.nf \
+    --dataset_name dataset \
+    --cnvs "$sample_file" \
+    --vep_cache "$vep_cache" \
+    --genome_version "$genome_version"
+```
+
+
+### Users on Compute Canada (CCDB, in the lab) are encouraged to refer directly to the script in setup/ccdb/annotate_cnv_sbatch.sh.
 
 ```bash
 
@@ -51,12 +87,15 @@ Users on Compute Canada (CCDB, in the lab) are encouraged to refer directly to t
 #   -i <CNV_TSV_FILE>   Path to a TSV file containing CNVs. Must include columns:
 #                        SampleID, Chr, Start, End, Type. Additional columns are preserved.
 #   -g <GENOME_VERSION>  Genome build (e.g., GRCh37, GRCh38) to use for annotation.
-#   -c <COHORT_TAG>      Identifier for the cohort (used in annotation and output naming).
+#   -c <DATASET_NAME>    Identifier for the dataset (used in annotation and output naming).
 sbatch CNV-Annotation/setup/ccdb/annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyCohort_Name -d /path/to/CNV-Annotation
 ```
 
-### Output
-Minimally, there are two output tables:
+
+
+## Outputs
+
+There are two output tables:
 
 #### **cnvDB.parquet**
 
@@ -109,30 +148,39 @@ Minimally, there are two output tables:
 * Intergenic CNVs are either NULL in `Gene_ID` or assigned to the nearest gene within 5kb of a start/stop codon, with a consequence flag: `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)).
 
 
-### Notes
+## Notes
 
-#### Problematic Regions
+### Workflow Structure
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/CNV-Annotation-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="img/CNV-Annotation-lite.png">
+  <img alt="Fallback image description" src="img/CNV-Annotation-lite.png" style="max-width:55%; height:auto;">
+</picture>
+
+
+
+### Problematic Regions
 
 This region regroups multiple tables from UCSC: Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and Problematic Regions from UCSC.
-For details, please refer to the file CNV-Annotation/resources/Genome_Regions/README.md 
+For details, please refer to the file `CNV-Annotation/resources/Genome_Regions/README.md` 
 
-#### Recurrent CNVs identification
+### Recurrent CNVs identification
 
-A CNV is flagged has recurrent if it overlaps all the genes in the geneset of a given rCNV_ID (considering only canonical transcripts of protein-coding genes) from resources/rCNV/geneset_per_rCNV.tsv .
-For a given rCNV, its geneset is constructed based on the protein-coding canonical transcripts that it overlaps at 50% (see resources/rCNV/README.md for details). If more than one rCNV_ID is identified for a given CNV, then only the one with the largest geneset is kept.
+A CNV is flagged has recurrent if it overlaps all the genes in the geneset of a given rCNV_ID (considering only canonical transcripts of protein-coding genes) from `resources/rCNV/geneset_per_rCNV.tsv` .
+For a given rCNV, its geneset is constructed based on the protein-coding canonical transcripts that it overlaps at 50% (see `resources/rCNV/README.md` for details). If more than one rCNV_ID is identified for a given CNV, then only the one with the largest geneset is kept.
 
-#### Consequences
+### Consequences
 
 Refer to VEP for exact definitions: https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html
 
-#### LOEUF
+### LOEUF
 
 The **LOEUF** corresponds to the `lof.oe_ci.upper` value of the associated `Transcript_ID` from [gnomAD v4.1 constraint metrics](https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv).
 
 ⚠️ This metric is adapted for **GRCh38**: since it relies on GRCh38 transcript IDs, using it with GRCh37 may lead to mismatches or missing values for some transcripts.
 
 
-#### Gnomad_Max_AF 
+### Gnomad_Max_AF 
 
 Gnomad Allele Frequency (AF) annotations for structural variants (SVs) are specific to the genome version.
 
@@ -159,7 +207,7 @@ __GRCh37__ uses Gnomad V2 SV sites from here:
 
 A 70% reciprocal alignment is required for the CNV to be matched with a known SV. The maximum frequency is taken across all populations. In the event multiple gnomad SV annotations match, the maximum allele frequency is taken across SVs.
 
-#### Exon_Overlap
+### Exon_Overlap
 
 By default, VEP reports CNVs that overlap with an exon in this format
 
@@ -169,6 +217,6 @@ Where "2-3/4" is a CNV that overlaps from the second to the third exon in gene o
 
     Exon_Overlap = (<last_exon> - <first_exon> + 1) / <total_exon_count>
 
-#### Transcript_Overlap
+### Transcript_Overlap
 
 This is a default field supplied by VEP (OverlapPC). It is simply the fraction of the transcript overlapped by the CNV.

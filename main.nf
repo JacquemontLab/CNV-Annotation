@@ -170,7 +170,7 @@ process produceSummaryPDF {
 // Build a launch summary file with workflow metadata and timing
 process buildSummary {
     input:
-    val cohort_tag
+    val dataset_name
     val cnvs_path
     val genome_version
     val git_hash
@@ -195,7 +195,7 @@ process buildSummary {
     seconds=\$(( duration % 60 ))
 
     cat <<EOF > launch_report.txt
-    CNV_DB_Builder ${cohort_tag} run summary:
+    CNV_DB_Builder ${dataset_name} run summary:
     run name: ${workflow.runName}
     version: ${workflow.manifest.version}
     configs: ${workflow.configFiles}
@@ -296,7 +296,7 @@ workflow {
         
         // Step 8: Build a general summary report for the workflow run
         buildSummary(
-            params.cohort_tag,
+            params.dataset_name,
             params.cnvs,
             params.genome_version,
             params.git_hash,
@@ -317,27 +317,27 @@ workflow {
 output {
     cnv_db {
         mode 'copy'
-        path "${params.cohort_tag}/"
+        path "${params.dataset_name}/"
     }
 
     gene_db {
         mode 'copy'
-        path "${params.cohort_tag}/"
+        path "${params.dataset_name}/"
     }
 
     pdf_gene {
         mode 'copy'
-        path "${params.cohort_tag}/docs"
+        path "${params.dataset_name}/docs"
     }
 
     pdf_cnv {
         mode 'copy'
-        path "${params.cohort_tag}/docs"
+        path "${params.dataset_name}/docs"
     }
 
     summary {
         mode 'copy'
-        path "${params.cohort_tag}/docs/"
+        path "${params.dataset_name}/docs/"
     }
 
 }

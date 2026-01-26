@@ -1,0 +1,46 @@
+# Base image
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies for VEP + unpacking BioPerl
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    perl \
+    build-essential \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libssl-dev \
+    libdbi-perl \
+    libdbd-mysql-perl \
+    libjson-perl \
+    libarchive-zip-perl \
+    libxml-simple-perl \
+    cpanminus \
+    unzip \
+    tar \
+    gzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set VEP directory
+ENV VEP_DIR=/opt/ensembl-vep
+ENV PATH="$VEP_DIR:$PATH"
+
+# Clone and install Ensembl VEP release 113.3
+RUN git clone https://github.com/Ensembl/ensembl-vep.git $VEP_DIR \
+    && cd $VEP_DIR \
+    && git fetch --all --tags \
+    && git checkout release/113.3 \
+    && yes n | perl INSTALL.pl \
+    && echo "✅ VEP 113.3 installed."
+
+# Set working directory for data
+WORKDIR /data
+
+# Default command
+CMD ["vep", "--help"]

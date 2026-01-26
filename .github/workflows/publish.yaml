@@ -1,0 +1,50 @@
+name: Build and Push Multiple GHCR Images
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        
+
+      - name: Debug list dockerfiles
+        run: |
+          pwd
+          ls ./resources/dockerfiles -la
+          git status
+          git log -1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build ensembl_113
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./resources/dockerfiles/Dockerfile_ensembl_113
+          push: true
+          tags: ghcr.io/jacquemontlab/ensembl_113:latest
+      
+      - name: Build tabix
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./resources/dockerfiles/Dockerfile_tabix
+          push: true
+          tags: ghcr.io/jacquemontlab/tabix:latest

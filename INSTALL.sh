@@ -15,6 +15,7 @@
 #   - curl
 #   - git
 #   - perl
+#   - tabix
 #   - .bashrc present in $HOME
 # ####################################
 
@@ -89,44 +90,6 @@ fi
 
 log_step "STEP Using resource directory: $RESOURCE_DIR"
 mkdir -p "$RESOURCE_DIR"
-
-# --- Function Definitions ---
-add_to_path_once() {
-    local line="$1"
-    grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
-}
-
-
-# --- Install Nextflow 25.10.2 if not present ---
-log_step "STEP Checking Nextflow installation"
-NF_REQUIRED_VERSION="25.10.2"
-
-if command -v nextflow &> /dev/null; then
-    NF_CURRENT_VERSION=$(nextflow -version | head -n 3 | grep version | awk '{print $2}')
-    if [[ "$NF_CURRENT_VERSION" == "$NF_REQUIRED_VERSION" ]]; then
-        log_step "DONE Nextflow $NF_REQUIRED_VERSION is already installed"
-        INSTALL_NEXTFLOW=false
-    else
-        log_step "WARN Nextflow $NF_CURRENT_VERSION found, required $NF_REQUIRED_VERSION"
-        INSTALL_NEXTFLOW=true
-    fi
-else
-    log_step "WARN Nextflow not found"
-    INSTALL_NEXTFLOW=true
-fi
-
-if [[ "${INSTALL_NEXTFLOW:-false}" == true ]]; then
-    log_step "STEP Installing Nextflow $NF_REQUIRED_VERSION"
-    curl -L -o "nextflow" https://github.com/nextflow-io/nextflow/releases/download/v25.10.2/nextflow
-    #curl -s https://get.nextflow.io | bash
-    mkdir -p "$HOME/bin"
-    mv nextflow "$HOME/bin/"
-    chmod +x "$HOME/bin/nextflow"   
-    add_to_path_once 'export PATH="$HOME/bin:$PATH"'
-    export PATH="$HOME/bin:$PATH"
-    log_step "DONE Nextflow installed successfully"
-fi
-
 
 # --- Download VEP Cache ---
 log_step "STEP Preparing VEP cache for $GENOME_ASSEMBLY"
