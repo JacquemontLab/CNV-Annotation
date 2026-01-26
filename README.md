@@ -30,10 +30,10 @@ You might need to pull the following containers if working **offline**, or you c
 
 | Parameter          | Description                                         | Default    |
 | ------------------ | --------------------------------------------------- | ---------- |
+| `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | GRCh38     |
 | `--cnvs`           | TSV file containing CNVs. <details><summary>Format</summary><small>With at least `SampleID  Chr  Start  End  Type`.<br> `Type` is a string that must be either `"DEL"` or `"DUP"`. All other columns are preserved in the output.<br> `Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.</small></details>     | *Required* |
 | `--dataset_name`   | Name of the dataset, used for directory and report naming.    | dataset    |
 | `--vep_cache`      | Path to the VEP cache directory                               | ${projectDir}/resources |
-| `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | GRCh38     |
 
 
 
@@ -47,10 +47,10 @@ From the root directory of the repository, run the following command (tabix and 
 
 ```bash
 docker run --rm -it \
-  -v "$PWD":/project \
-  -w /project \
+  -v "$PWD":/CNV-Annotation \
+  -w /CNV-Annotation \
   ghcr.io/jacquemontlab/tabix:latest \
-  bash INSTALL.sh -g GRCh38 -r /project
+  bash INSTALL.sh -g GRCh38
 ```
 
 ### Testing
