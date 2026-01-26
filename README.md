@@ -58,7 +58,7 @@ docker run --rm -it \
 The pipeline can be tested using the test profile and the images hosted on github using the container of your choice. 
 
 ```bash
-container=docker # or apptainer or singularity
+container=docker # or apptainer or singularity or conda
 
 nextflow run main.nf -profile test,${container}
 ```
@@ -69,12 +69,14 @@ nextflow run main.nf -profile test,${container}
 genome_version=GRCh38
 sample_file=tests/cnvs_10k.tsv
 vep_cache=$PWD/resources/vep_cache
+container=docker 
 
 nextflow run main.nf \
     --dataset_name dataset \
     --cnvs "$sample_file" \
     --vep_cache "$vep_cache" \
     --genome_version "$genome_version"
+    -profile ${container}
 ```
 
 

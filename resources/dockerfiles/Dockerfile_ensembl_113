@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     perl \
+    tabix \
     build-essential \
     zlib1g-dev \
     libbz2-dev \

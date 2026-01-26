@@ -5,7 +5,6 @@
 // from canonical transcripts (CANONICAL = TRUE) overlapping exons (Exon_Overlap > 0),
 // then merge this LOEUF summary with the CNV database and add gnomAD Max AF.
 process sum_loeuf_gnomAD_cnv {
-    label 'polars_duckdb'
     
     input:
     path uniq_cnv_parquet 

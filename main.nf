@@ -2,7 +2,7 @@
 
 
 /*
-CNV_DB_Builder Nextflow Pipeline
+CNV-Annotation Nextflow Pipeline
 ================================
 
 Description
@@ -29,7 +29,6 @@ nextflow run main.nf --cnvs path/to/cnvs.tsv --regions path/to/regions.bed \
 */
 
 nextflow.enable.dsl = 2
-nextflow.preview.output = true
 
 // Get Git hash at workflow launch
 params.git_hash = "git -C ${projectDir} rev-parse HEAD".execute().text.trim()
@@ -65,7 +64,6 @@ include { RCNV_ANNOTATION } from './modules/rCNV_annotation'
 
 // It extracts unique CNV coordinates to reduce redundant queries
 process identifyUniqCNV {
-    label 'polars_duckdb'
     
     input:
     path cnvs 
@@ -109,7 +107,6 @@ process computeOverlapRegion {
 
 // Merge CNV dataset with region overlaps to build CNV database
 process buildCnvDB {
-    label 'polars_duckdb'
 
     input:
     path cnvs
@@ -152,7 +149,6 @@ process buildCnvDB {
 
 // Generate summary PDFs from Parquet files
 process produceSummaryPDF {
-    label 'polars_duckdb'
 
     input:
     path parquet_input
@@ -161,8 +157,20 @@ process produceSummaryPDF {
     path "*_dictionary.pdf"
 
     script:
+    // Compute memory in GB if task.memory exists; else leave null
+    def memGb = task.memory ? (task.memory.toGiga() * 0.85).intValue() : null
+
     """
-    pdf_dictionary.py ${parquet_input} ${task.cpus} ${task.memory}
+    # If memGb > 0 (HPC), use it; else detect 85% of VM RAM
+    if [ ${memGb} -gt 0 ]; then
+        MEM_GB=${memGb}
+    else
+        MEM_GB=\$(free -k | awk '/^Mem:/ {print int(\$2*0.85/1024/1024)}')
+    fi
+
+    echo "Using memory limit: \${MEM_GB} GB"
+
+    pdf_dictionary.py ${parquet_input} ${task.cpus} \${MEM_GB}
     """
 }
 
@@ -195,7 +203,7 @@ process buildSummary {
     seconds=\$(( duration % 60 ))
 
     cat <<EOF > launch_report.txt
-    CNV_DB_Builder ${dataset_name} run summary:
+    CNV-Annotation ${dataset_name} run summary:
     run name: ${workflow.runName}
     version: ${workflow.manifest.version}
     configs: ${workflow.configFiles}
@@ -339,5 +347,4 @@ output {
         mode 'copy'
         path "${params.dataset_name}/docs/"
     }
-
 }
