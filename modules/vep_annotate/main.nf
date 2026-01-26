@@ -116,7 +116,6 @@ process VEP_GRCh37 {
 // Produces a compressed Parquet file containing genome-version metadata.
 // Filter to keep only transcripts with MANE or CANONICAL annotation
 process buildGeneDB {
-    label 'polars_duckdb'
 
     input:
     path vep_out

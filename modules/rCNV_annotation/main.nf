@@ -10,7 +10,6 @@
 // Outputs:
 //   - cnvDB_rCNV.parquet: CNV database annotated with flagged recurrent CNVs
 process annotate_rCNV {
-    label 'polars_duckdb'
 
     input:
     path cnvDB
