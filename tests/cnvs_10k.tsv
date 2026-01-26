@@ -1,4 +1,4 @@
-Chr	Start	End	Length	Two_Algorithm_Overlap	Num_Probes	SampleID	Type
+Chr	Start	End	var1	var2	var3	SampleID	Type
 chr22	44695088	44791807	96720	1	58	09AMGz	DEL
 chr9	124650611	124941854	291244	0	59	09b6Yp	DUP
 chr8	951785	1035077	83293	0	28	0An0Xn	DUP

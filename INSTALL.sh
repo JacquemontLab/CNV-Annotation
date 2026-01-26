@@ -1,13 +1,11 @@
-#!/usr/bin/env bash
-# -*- coding: utf-8 -*-
+#!/bin/bash
 
 # ####################################
-# DB-Builder Cloud Set-Up Script
+# CNV-Annotation Set-Up
 #
-# Usage: bash cloud_setup.sh
+# Usage: bash INSTALL.sh
 #
-# Description:
-# Description : For installing all necessary dependancies on fresh cloud VM. By default the program will install resources
+# Description : For installing all necessary dependancies. By default the program will install resources
 #               (the vep cache and gnomad files) into the resources folder. Otherwise the location can be specified uing the -r flag.
 #
 # Options:
@@ -20,12 +18,24 @@
 #   - .bashrc present in $HOME
 # ####################################
 
-IFS=$'\n\t'
 
+set -e  # Exit immediately if a command exits with a non-zero status
+
+#--- Logging function ---
+log_step() {
+    # Choose a symbol depending on the message
+    case "$1" in
+        STEP*) icon="🔹" ;;   # blue diamond for pipeline steps
+        ERROR*) icon="❌" ;;  # red cross for errors
+        WARN*) icon="⚠️ " ;;  # warning sign
+        DONE*) icon="✅" ;;   # check mark for done
+        *) icon="ℹ️ " ;;      # info icon
+    esac
+    echo -e "\n[$(date '+%Y-%m-%d %H:%M:%S')] $icon $1"
+}
 
 # --- Default Parameters ---
 RESOURCE_DIR="$(git rev-parse --show-toplevel)/resources"
-
 
 # --- Git-Variables
 GIT_PROJECT="CNV-Annotation"
@@ -49,168 +59,95 @@ while getopts ":r:h:g:" opt; do
     esac
 done
 
-# ---  Checking if we are in the git repo if default resource path is being used ---
+log_step "STEP Checking launch context"
 
+# Validate GENOME_ASSEMBLY
+if [[ "$GENOME_ASSEMBLY" != "GRCh38" && "$GENOME_ASSEMBLY" != "GRCh37" ]]; then
+    log_step "ERROR Invalid genome version: $GENOME_ASSEMBLY (expected GRCh37 or GRCh38)"
+    exit 1
+fi
+
+# ---  Checking if we are in the git repo if default resource path is being used ---
 #check if default is being used
 if [[ "$RESOURCE_DIR" == "$(git rev-parse --show-toplevel)/resources" ]]; then
-        #check if we are in a git repo
+        # check if we are in a git repo
         GIT_REPO=$(git rev-parse --show-toplevel 2>/dev/null)
         if [[ -n "$GIT_REPO" ]]; then
                 repo_name=$(basename "$GIT_REPO")
         else
-                echo "Invalid launch context: git repository not found"
-                exit 1
+            log_step "ERROR Invalid launch context: git repository not found"
+            exit 1
         fi
-        #check if we are in the expected repo
+        # check if we are in the expected repo
         if [[ "$GIT_PROJECT" == "$repo_name" ]]; then
-                echo "Default resource directory found at: $RESOURCE_DIR"
+            log_step "DONE Default resource directory found at: $RESOURCE_DIR"
         else
-                echo "Invalid launch context: please launch script within the CNV-Annotation repository or"
-                echo " provide a path to a resource directory (-r /path/to/dir)"
-                exit 1
+            log_step "ERROR Invalid launch context: please launch script within the CNV-Annotation repository or provide -r"
+            exit 1
         fi
 fi
 
-
-# Validate GENOME_ASSEMBLY
-if [[ "$GENOME_ASSEMBLY" != "GRCh38" && "$GENOME_ASSEMBLY" != "GRCh37" ]]; then
-    echo "Invalid genome version: $GENOME_ASSEMBLY"
-    exit 1
-fi
-
-
-
-echo "📁 Using resource directory: $RESOURCE_DIR"
+log_step "STEP Using resource directory: $RESOURCE_DIR"
 mkdir -p "$RESOURCE_DIR"
 
 # --- Function Definitions ---
-command_exists() {
-    command -v "$1" &>/dev/null
-}
-
-
-check_java_version() {
-    if ! command_exists java; then
-        echo "❌ Java is not installed."
-        return 1
-    fi
-    local version
-    version=$(java -version 2>&1 | awk -F[\".] '/version/ {print $2}')
-    if [[ "$version" -ge 17 ]]; then
-        echo "✅  Java version $version detected"
-        return 0
-    else
-        echo "⚠️  Java version $version is too old, need 17+"
-        return 1
-    fi
-}
-
 add_to_path_once() {
     local line="$1"
     grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
 }
 
-# --- Install DuckDB ---
-if command_exists duckdb; then
-    echo "✅  DuckDB already installed."
-else
-    echo "🔧 Installing DuckDB..."
-    curl -fsSL https://install.duckdb.org | sh
-    add_to_path_once 'export PATH="$HOME/.duckdb/cli/latest/:$PATH"'
-fi
 
-# --- Install Java (if needed) ---
-if ! check_java_version; then
-    echo "🔧  Installing Java 17 via SDKMAN..."
-    curl -s https://get.sdkman.io | bash
-    source "$HOME/.bashrc"
-    source "$HOME/.zshrc"
-    sdk install java 17.0.10-tem
-
-fi
-
-# --- Install Python Packages ---
-echo "⬇️  Upgrading pip and installing Python packages in virtualenv"
-ENV_DIR="$(git rev-parse --show-toplevel)/env"
-mkdir -p "$ENV_DIR"
-python3 -m venv "$ENV_DIR/db-builder-env"
-source "$ENV_DIR/db-builder-env/bin/activate"
-pip install --upgrade pip
-pip install duckdb pandas matplotlib tqdm polars pyarrow
-echo "✅  Python virtual environment installed in $ENV_DIR/db-builder-env. Be sure to source before run."
-deactivate
-
-
-# --- Install Nextflow 25.04.2 if not present ---
-NF_REQUIRED_VERSION="25.04.2"
+# --- Install Nextflow 25.10.2 if not present ---
+log_step "STEP Checking Nextflow installation"
+NF_REQUIRED_VERSION="25.10.2"
 
 if command -v nextflow &> /dev/null; then
     NF_CURRENT_VERSION=$(nextflow -version | head -n 3 | grep version | awk '{print $2}')
     if [[ "$NF_CURRENT_VERSION" == "$NF_REQUIRED_VERSION" ]]; then
-        echo "✅  Nextflow $NF_REQUIRED_VERSION is already installed."
+        log_step "DONE Nextflow $NF_REQUIRED_VERSION is already installed"
         INSTALL_NEXTFLOW=false
     else
-        echo "⬇️  Nextflow installed ($NF_CURRENT_VERSION) is not $NF_REQUIRED_VERSION."
+        log_step "WARN Nextflow $NF_CURRENT_VERSION found, required $NF_REQUIRED_VERSION"
         INSTALL_NEXTFLOW=true
     fi
 else
-    echo "⬇️  Nextflow not found."
+    log_step "WARN Nextflow not found"
     INSTALL_NEXTFLOW=true
 fi
 
 if [[ "${INSTALL_NEXTFLOW:-false}" == true ]]; then
-    echo "🔧  Installing Nextflow 25.04.2..."
-    curl -L -o "nextflow" https://github.com/nextflow-io/nextflow/releases/download/v25.04.2/nextflow
+    log_step "STEP Installing Nextflow $NF_REQUIRED_VERSION"
+    curl -L -o "nextflow" https://github.com/nextflow-io/nextflow/releases/download/v25.10.2/nextflow
     #curl -s https://get.nextflow.io | bash
     mkdir -p "$HOME/bin"
     mv nextflow "$HOME/bin/"
     chmod +x "$HOME/bin/nextflow"   
     add_to_path_once 'export PATH="$HOME/bin:$PATH"'
     export PATH="$HOME/bin:$PATH"
-    echo "✅  Nextflow installed: $($HOME/bin/nextflow -version)"
+    log_step "DONE Nextflow installed successfully"
 fi
 
-# --- Install VEP 113 ---
-# VEP_DIR="$HOME/ensembl-vep"
-# if ! command_exists vep; then
-#     echo "⬇️  Cloning VEP 113 to $VEP_DIR"
-#     if [[ -d "$VEP_DIR" && -n "$(ls -A "$VEP_DIR")" ]]; then
-#         echo "⚠️  $VEP_DIR exists and is not empty. Skipping VEP clone."
-#     else
-#         git clone https://github.com/Ensembl/ensembl-vep.git "$VEP_DIR"
-#         pushd "$VEP_DIR" > /dev/null
-#         git checkout release/113
-#         yes "n" |  perl INSTALL.pl
-#         popd > /dev/null
-#         add_to_path_once 'export PATH="$HOME/ensembl-vep:$PATH"'
-#         export PATH="$HOME/ensembl-vep:$PATH"
-#         echo "✅  VEP 113 installed."
-#     fi
-# else
-#     echo "✅  VEP already installed."
-#fi
 
 # --- Download VEP Cache ---
-echo "⬇️  Downloading VEP cache files..."
+log_step "STEP Preparing VEP cache for $GENOME_ASSEMBLY"
 pushd "$RESOURCE_DIR" > /dev/null
-
 
 cache_file="homo_sapiens_vep_113_${GENOME_ASSEMBLY}.tar.gz"
 cache_path="$RESOURCE_DIR/$cache_file"
 cache_dir="$RESOURCE_DIR/homo_sapiens/113_${GENOME_ASSEMBLY}"
 
 if [[ ! -d "$cache_dir" ]]; then
-    echo "⬇️  Downloading VEP cache for $GENOME_ASSEMBLY..."
+    log_step "STEP Downloading VEP cache ($GENOME_ASSEMBLY)"
     curl -o "$cache_path" "https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/${cache_file}"
     tar -xzf "$cache_path" -C "$RESOURCE_DIR"
+    log_step "DONE VEP cache extracted"
 else
-    echo "✅  VEP cache for${GENOME_ASSEMBLY} already exists at $cache_dir"
+    log_step "DONE VEP cache already exists at $cache_dir"
 fi
 
 
-
 # --- Download GnomAD Resources ---
-echo "⬇️  Downloading GnomAD CNV/SV files..."
+log_step "STEP Downloading GnomAD CNV/SV resources"
 
 # Create and enter ressources_gnomAD directory
 mkdir -p ressources_gnomAD
@@ -222,14 +159,15 @@ download_and_index_vcf() {
     local bgz="${base/.vcf.gz/.vcf.bgz}"
 
     if [[ ! -f "$bgz" ]]; then
+        log_step "STEP Downloading $(basename "$url")"
         curl -O "$url"
         gunzip -c "$base" | bgzip > "$bgz"
         tabix -p vcf "$bgz"
+        log_step "DONE Indexed $bgz"
     else
-        echo "✅ $bgz already exists."
+        log_step "DONE $bgz already exists"
     fi
 }
-
 
 # GnomAD v4.1 (GRCh38)
 download_and_index_vcf "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/gnomad.v4.1.cnv.all.vcf.gz"
@@ -242,7 +180,7 @@ popd > /dev/null  # Exit ressources_gnomAD
 
 
 # --- Constraint Metrics ---
-echo "⬇️  Downloading Constraint Metrics..."
+log_step "STEP Downloading constraint metrics"
 
 # Create and enter ressources_LOEUF directory
 mkdir -p ressources_LOEUF
@@ -250,12 +188,13 @@ pushd ressources_LOEUF > /dev/null
 
 if [[ ! -f "gnomad.v4.1.constraint_metrics.tsv" ]]; then
     curl -O "https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv"
+    log_step "DONE Constraint metrics downloaded"
 else
-    echo "✅  Constraint metrics already downloaded."
+    log_step "DONE Constraint metrics already present"
 fi
 
 popd > /dev/null  # Exit ressources_LOEUF
 popd > /dev/null  # Exit RESOURCE_DIR
 
-echo "✅  All downloads complete."
-echo "🎉  Setup finished successfully!"
+log_step "DONE All downloads complete"
+log_step "DONE Setup finished successfully 🎉"

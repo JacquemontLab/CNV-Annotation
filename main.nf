@@ -28,9 +28,8 @@ nextflow run main.nf --cnvs path/to/cnvs.tsv --regions path/to/regions.bed \
   --genome_version GRCh38 --vep_cache /path/to/vep_cache --outdir results
 */
 
-nextflow.enable.dsl=2
+nextflow.enable.dsl = 2
 nextflow.preview.output = true
-nextflow.enable.moduleBinaries = true
 
 // Get Git hash at workflow launch
 params.git_hash = "git -C ${projectDir} rev-parse HEAD".execute().text.trim()
