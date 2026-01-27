@@ -83,7 +83,7 @@ pip install --no-index --upgrade pip
 pip install --no-index polars
 
 # Run Nextflow pipeline
-/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/bioutils/bin/nextflow run "${git_dir}/main.nf" --cnvs "$cnv_input_file" \
+/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/bioutils/bin/nextflow-25.10.2-dist run "${git_dir}/main.nf" --cnvs "$cnv_input_file" \
     --genome_version "$genome_version" \
     --dataset_name "$dataset_name" \
     -c "${git_dir}/setup/ccdb/ccdb.config" \
