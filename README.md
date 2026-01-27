@@ -21,7 +21,7 @@ Required software:
 * **Nextflow** – workflow engine (nextflow version 25.10.2)
 * **Docker** (Apptainer or Singularity) – to run containers
 
-You might need to pull the following containers if working **offline**, or you can use conda (see `nextflow.config`):
+You might need to pull the following containers if working **offline**, or you can try using conda (see `nextflow.config`):
 * **docker://ghcr.io/jacquemontlab/python_etl_packages:latest**
 * **docker://ghcr.io/jacquemontlab/ensembl_113:latest**
 
@@ -58,7 +58,7 @@ docker run --rm -it \
 The pipeline can be tested using the test profile and the images hosted on github using the container of your choice. 
 
 ```bash
-container=docker # or apptainer or singularity or conda
+container=docker # or apptainer or singularity
 
 nextflow run main.nf -profile test,${container}
 ```
@@ -69,7 +69,7 @@ nextflow run main.nf -profile test,${container}
 genome_version=GRCh38
 sample_file=$PWD/tests/cnvs_10k.tsv
 vep_cache=$PWD/resources/vep_cache
-container=docker # or apptainer or singularity or conda
+container=docker # or apptainer or singularity
 
 nextflow run main.nf \
     --dataset_name Dataset \
@@ -83,7 +83,6 @@ nextflow run main.nf \
 ### Users on Compute Canada (CCDB, in the lab) are encouraged to refer directly to the script in setup/ccdb/annotate_cnv_sbatch.sh.
 
 ```bash
-
 # Inputs:
 #   -d <GIT_DIR>        Path to the root of the repository containing `main.nf` and configs.
 #   -i <CNV_TSV_FILE>   Path to a TSV file containing CNVs. Must include columns:
