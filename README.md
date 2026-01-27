@@ -67,15 +67,15 @@ nextflow run main.nf -profile test,${container}
 
 ```bash
 genome_version=GRCh38
-sample_file=tests/cnvs_10k.tsv
+sample_file=$PWD/tests/cnvs_10k.tsv
 vep_cache=$PWD/resources/vep_cache
-container=docker 
+container=docker # or apptainer or singularity or conda
 
 nextflow run main.nf \
-    --dataset_name dataset \
+    --dataset_name Dataset \
     --cnvs "$sample_file" \
     --vep_cache "$vep_cache" \
-    --genome_version "$genome_version"
+    --genome_version "$genome_version" \
     -profile ${container}
 ```
 
@@ -90,7 +90,8 @@ nextflow run main.nf \
 #                        SampleID, Chr, Start, End, Type. Additional columns are preserved.
 #   -g <GENOME_VERSION>  Genome build (e.g., GRCh37, GRCh38) to use for annotation.
 #   -c <DATASET_NAME>    Identifier for the dataset (used in annotation and output naming).
-sbatch CNV-Annotation/setup/ccdb/annotate_cnv_sbatch.sh -i /path/to/input_cnvs.tsv -g GRCh38 -c MyDataset_Name -d /path/to/CNV-Annotation
+sbatch /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/setup/ccdb/annotate_cnv_sbatch.sh \
+-i /path/to/input_cnvs.tsv -g GRCh38 -c MyDataset_Name
 ```
 
 
