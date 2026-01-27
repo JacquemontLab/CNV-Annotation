@@ -68,19 +68,10 @@ if [ ! -f "${git_dir}/main.nf" ]; then
 fi
 
 # Load modules
-module load java
-module load python/3.13.2
 export NXF_OFFLINE=true
 
 # If SLURM_TMPDIR is not set, fallback to system temp dir
 TMPDIR=${SLURM_TMPDIR:-/tmp}
-
-# Create and activate virtual environment
-virtualenv --no-download "$TMPDIR/env"
-source "$TMPDIR/env/bin/activate"
-
-pip install --no-index --upgrade pip
-pip install --no-index polars
 
 # Run Nextflow pipeline
 /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/bioutils/bin/nextflow-25.10.2-dist run "${git_dir}/main.nf" --cnvs "$cnv_input_file" \
