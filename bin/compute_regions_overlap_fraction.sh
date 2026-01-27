@@ -21,6 +21,9 @@
 # Date: April 2025
 ###############################################################################
 
+# Force TMPDIR to /tmp
+export TMPDIR=/tmp
+
 set -e
 # Check input arguments
 if [ "$#" -ne 3 ]; then

@@ -21,6 +21,8 @@
 # Author: Florian Bénitière
 # Date: April 2025
 # ##############################################################################
+# Force TMPDIR to /tmp
+export TMPDIR=/tmp
 
 set -euo pipefail
 
