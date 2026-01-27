@@ -78,5 +78,4 @@ TMPDIR=${SLURM_TMPDIR:-/tmp}
     --genome_version "$genome_version" \
     --dataset_name "$dataset_name" \
     -c "${git_dir}/setup/ccdb/ccdb.config" \
-    -with-report report.html \
     -resume

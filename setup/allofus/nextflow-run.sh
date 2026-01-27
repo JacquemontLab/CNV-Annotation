@@ -71,5 +71,4 @@ nextflow run \
   --genome_version "${genome_version}" \
   --dataset_name "${dataset_name}" \
   -c "${git_dir}/setup/allofus/allofus.config" \
-  -with-report report.html \
   -resume
