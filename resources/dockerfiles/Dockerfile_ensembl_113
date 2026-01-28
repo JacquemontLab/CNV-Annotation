@@ -24,6 +24,11 @@ RUN apt-get update && apt-get install -y \
     libarchive-zip-perl \
     libxml-simple-perl \
     cpanminus \
+    libcurl4-openssl-dev \
+    parallel \
+    ca-certificates \
+    pkg-config \
+    libtool \
     unzip \
     tar \
     gzip \
