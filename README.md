@@ -22,7 +22,7 @@ Required software:
 * **Docker** (Apptainer or Singularity) – to run containers
 
 You might need to pull the following containers if working **offline**, or you can try using conda (see `nextflow.config`):
-* **docker://ghcr.io/jacquemontlab/python_etl_packages:latest**
+* **docker://ghcr.io/jacquemontlab/python_packages:latest**
 * **docker://ghcr.io/jacquemontlab/ensembl_113:latest**
 
 

@@ -48,3 +48,12 @@ jobs:
           file: ./resources/dockerfiles/Dockerfile_tabix
           push: true
           tags: ghcr.io/jacquemontlab/tabix:latest
+      
+      - name: Build python_packages
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./resources/dockerfiles/Dockerfile_python_packages
+          push: true
+          tags: ghcr.io/jacquemontlab/python_packages:latest
+
