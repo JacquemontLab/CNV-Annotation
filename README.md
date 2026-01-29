@@ -25,20 +25,6 @@ You might need to pull the following containers if working **offline**, or you c
 * **docker://ghcr.io/jacquemontlab/python_packages:latest**
 * **docker://ghcr.io/jacquemontlab/ensembl_113:latest**
 
-
-## Inputs
-
-| Parameter          | Description                                         | Default    |
-| ------------------ | --------------------------------------------------- | ---------- |
-| `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | GRCh38     |
-| `--cnvs`           | TSV file containing CNVs. <details><summary>Format</summary><small>With at least `SampleID  Chr  Start  End  Type`. All other columns are preserved in the output.<br> `Type` is a string that must be either `"DEL"` or `"DUP"`.<br> `Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.</small></details>     | *Required* |
-| `--dataset_name`   | Name of the dataset, used for directory and report naming.    | dataset    |
-| `--vep_cache`      | Path to the VEP cache directory                               | ${projectDir}/resources/vep_cache |
-
-
-
-## Usage
-
 ### Download required VEP cache files 
 
 Run the installation script to automatically download all reference resources required by the pipeline, including VEP cache files, gnomAD structural variant data, and constraint metrics, for the selected genome build (GRCh37 and GRCh38 only). This script can take quite some time >1 hour.
@@ -52,6 +38,20 @@ docker run --rm -it \
   ghcr.io/jacquemontlab/tabix:latest \
   bash INSTALL.sh -g GRCh38
 ```
+
+
+## Inputs
+
+| Parameter          | Description                                         | Default    |
+| ------------------ | --------------------------------------------------- | ---------- |
+| `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | GRCh38     |
+| `--cnvs`           | TSV file containing CNVs. <details><summary>Format</summary><small>With at least `SampleID  Chr  Start  End  Type`. All other columns are preserved in the output.<br> `Type` is a string that must be either `"DEL"` or `"DUP"`.<br> `Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.</small></details>     | *Required* |
+| `--dataset_name`   | Name of the dataset, used for directory and report naming.    | dataset    |
+| `--vep_cache`      | Path to the VEP cache directory                               | ${projectDir}/resources/vep_cache |
+
+
+
+## Usage
 
 ### Testing
 
