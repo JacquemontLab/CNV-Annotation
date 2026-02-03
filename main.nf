@@ -154,7 +154,7 @@ process produceSummaryPDF {
     path parquet_input
 
     output:
-    path "*_dictionary.pdf"
+    path "*_columns_report.pdf"
 
     script:
     // Compute memory in GB if task.memory exists; else leave null
@@ -170,7 +170,7 @@ process produceSummaryPDF {
 
     echo "Using memory limit: \${MEM_GB} GB"
 
-    pdf_dictionary.py ${parquet_input} ${task.cpus} \${MEM_GB}
+    pdf_columns_report.py ${parquet_input} ${task.cpus} \${MEM_GB}
     """
 }
 

@@ -97,7 +97,7 @@ sbatch /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotat
 
 ## Outputs
 
-There are two output tables:
+There are two output tables and in `docs/` are saved their corresponding `columns_report.pdf`.
 
 #### **cnvDB.parquet**
 

@@ -12,8 +12,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 import os
 from math import floor  # For rounding down numbers
 
-def generate_pdf_dictionary_duckdb(path_to_dataset, total_memory):
-    output_file = path_to_dataset.replace(".parquet", "_dictionary.pdf")
+def generate_pdf_columns_report_duckdb(path_to_dataset, total_memory):
+    output_file = path_to_dataset.replace(".parquet", "_columns_report.pdf")
 
     if os.path.isfile(path_to_dataset) and path_to_dataset.endswith(".parquet"):
         parquet_pattern = path_to_dataset
@@ -144,4 +144,4 @@ if __name__ == "__main__":
     print(f"[INFO] CPUs: {cpus}")
     print(f"[INFO] Total memory allocated: {total_memory} GB")
 
-    generate_pdf_dictionary_duckdb(parquet_input, total_memory)
+    generate_pdf_columns_report_duckdb(parquet_input, total_memory)
