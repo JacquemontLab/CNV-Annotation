@@ -35,11 +35,6 @@ RUN apt-get update && apt-get install -y \
     pigz \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user and switch to it
-RUN useradd -m -u 1000 flben
-
-USER flben
-
 # Default working directory and shell
 WORKDIR /data
 SHELL ["/bin/bash", "-c"]
