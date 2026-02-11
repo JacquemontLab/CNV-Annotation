@@ -2,6 +2,9 @@
 
 [Git Repository CNV-Annotation](https://github.com/JacquemontLab/CNV-Annotation.git)
 
+[![DOI](https://zenodo.org/badge/992786328.svg)](https://doi.org/10.5281/zenodo.18607264)
+
+
 # CNV-Annotation
 
 ## Overview
