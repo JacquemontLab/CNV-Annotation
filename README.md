@@ -55,7 +55,7 @@ docker run --rm -it \
 
 ### Testing
 
-The pipeline can be tested using the test profile and the images hosted on github using the container of your choice. 
+The pipeline can be tested using the test profile and the images hosted on github using the container platform of your choice. 
 
 ```bash
 container=docker # or apptainer or singularity
