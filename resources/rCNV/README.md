@@ -13,7 +13,7 @@ After VEP annotation, we kept only transcripts and genes meeting the following c
 
 * **Canonical transcripts** only
 * **Protein-coding genes**
-* **Variants/transcripts overlapping >50%** with the CNV region (Transcript_Overlap > 50)
+* **Variants/transcripts overlapping >50%** with the CNV region (Transcript_Overlap > 0.5)
 * **Transcripts not overlapping problematic regions** as defined by UCSC (Transcript_ProblematicRegions_Overlap <50%)
 
 
