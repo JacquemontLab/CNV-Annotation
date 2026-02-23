@@ -54,7 +54,7 @@ for genome_version in GRCh37 GRCh38; do
     # Parse VEP output and retain only:
     #   - Canonical transcripts
     #   - Protein-coding genes
-    #   - Variants overlapping > 50% with the region (OverlapPC > 50)
+    #   - Variants overlapping > 50% with the region (Transcript_Overlap > 0.5)
     # Output is written as a BED-like TSV (chr, start, end, gene, type).
     duckdb -c "
     COPY (
@@ -71,7 +71,7 @@ for genome_version in GRCh37 GRCh38; do
         ON b.Feature = t.Transcript_ID
         WHERE b.CANONICAL = 'YES'
         AND b.BIOTYPE = 'protein_coding'
-        AND TRY_CAST(b.OverlapPC AS DOUBLE) > 50
+        AND TRY_CAST(b.Transcript_Overlap AS DOUBLE) > 0.5
     ) TO 'random_bed_${genome_version}_joined.tsv' (DELIMITER '\t', HEADER);
     "
 
@@ -88,7 +88,7 @@ for genome_version in GRCh37 GRCh38; do
     ON b.Feature = t.Transcript_ID
     WHERE b.CANONICAL = 'YES'
     AND b.BIOTYPE = 'protein_coding'
-    AND TRY_CAST(b.OverlapPC AS DOUBLE) > 50;
+    AND TRY_CAST(b.Transcript_Overlap AS DOUBLE) > 0.5;
     "
 
 
