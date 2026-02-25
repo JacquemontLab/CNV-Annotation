@@ -1,0 +1,31 @@
+
+// To launch the test on local :
+// nf-test test tests/main.nf.test --profile test,apptainer
+
+
+nextflow_pipeline {
+
+    name "Test"
+    script "main.nf"
+
+    test("Full run should exit without errors") {
+
+        when {
+            params {
+                cnvs = "${projectDir}/tests/cnvs_10k.tsv"
+                genome_version = 'GRCh38'
+                dataset_name = "Testing"
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert file("$launchDir/results/Testing/cnvDB.parquet").exists()
+            assert file("$launchDir/results/Testing/geneDB.parquet").exists()
+            assert file("$launchDir/results/Testing/docs/launch_report.txt").exists()
+            assert file("$launchDir/results/Testing/docs/cnvDB_columns_report.pdf").exists()
+            assert file("$launchDir/results/Testing/docs/geneDB_columns_report.pdf").exists()
+        }
+    }
+}
+

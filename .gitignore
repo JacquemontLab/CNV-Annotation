@@ -4,6 +4,7 @@ work/
 .nextflow
 results/
 test-data/
+.nf-test/
 .nextflow.log*
 *.log
 env/
