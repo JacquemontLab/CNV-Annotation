@@ -157,9 +157,7 @@ There are two output tables and in `docs/` are saved their corresponding `column
 
 ### Workflow Structure
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="img/CNV-Annotation-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="img/CNV-Annotation-lite.png">
-  <img alt="Fallback image description" src="img/CNV-Annotation-lite.png" style="max-width:55%; height:auto;">
+  <img src="img/CNV-Annotation.png" style="max-width:55%; height:auto;">
 </picture>
 
 
