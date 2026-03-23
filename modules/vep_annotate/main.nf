@@ -50,7 +50,7 @@ process VEP_GRCh38 {
     --overlaps\
     --canonical\
     --mane\
-    --max_sv_size 100000000\
+    --max_sv_size 100000000000 \
     --verbose\
     --assembly GRCh38 \
     --custom file="./${gnomad_sv}",short_name=gnomad,format=VCF,reciprocal=1,overlap_cutoff=70,same_type=1,fields=AF_nfe%AF_afr%AF_amr%AF_fin%AF_sas%AF_eas%AF_asj \
@@ -100,7 +100,7 @@ process VEP_GRCh37 {
     --biotype\
     --overlaps\
     --canonical\
-    --max_sv_size 100000000\
+    --max_sv_size 100000000000 \
     --verbose\
     --assembly GRCh37 \
     --custom file="./${gnomad_sv}",short_name=gnomad,format=VCF,reciprocal=1,overlap_cutoff=70,same_type=1,fields=AFR_AF%AMR_AF%EAS_AF%EUR_AF \
