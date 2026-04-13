@@ -37,7 +37,6 @@ From the root directory of the repository, run the following command to save the
 
 ```bash
 docker run --rm -it \
-  -u $(id -u):$(id -g) \
   -v "$PWD":/CNV-Annotation \
   -w /CNV-Annotation \
   ghcr.io/jacquemontlab/tabix:latest \
