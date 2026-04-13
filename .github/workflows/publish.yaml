@@ -56,4 +56,13 @@ jobs:
           file: ./resources/dockerfiles/Dockerfile_python_packages
           push: true
           tags: ghcr.io/jacquemontlab/python_packages:latest
+      
+      - name: Build python_packages
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./resources/dockerfiles/Dockerfile_cnv_dataset_report
+          push: true
+          tags: ghcr.io/jacquemontlab/cnv_dataset_report:latest
+
 

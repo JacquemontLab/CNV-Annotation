@@ -37,6 +37,7 @@ params.git_hash = "git -C ${projectDir} rev-parse HEAD".execute().text.trim()
 params.vep_cache = "${projectDir}/resources/vep_cache"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
 params.recurrent_path = "${projectDir}/resources/rCNV/geneset_per_rCNV.tsv"
+params.recurrent_freq_path = "${projectDir}/resources/rCNV/docs/frequency_comparison.xlsx"
 params.gnomad_dir = "${params.vep_cache}/homo_sapiens" 
 
 def gnomad_AF
@@ -175,6 +176,43 @@ process produceSummaryPDF {
 }
 
 
+process QCReportPDF {
+    label "Rmarkdown"
+
+    input:
+    path cnv_dataset_report_rmd
+    val dataset_name
+    path cnvDB
+    path geneDB
+    path recurrent_path
+    path recurrent_freq_path
+
+    output:
+    path "cnv_dataset_qc.pdf"
+
+    script:
+    """
+    # The markdown is initially designed to run by providing paths to resource scripts from Git repositories
+    # That's what we are reconstructing here below
+    mkdir -p resources/rCNV/
+    cp ${recurrent_path} resources/rCNV/
+
+    mkdir -p resources/rCNV/docs/
+    cp ${recurrent_freq_path} resources/rCNV/docs/
+  
+    mkdir -p bin/make_report/
+    cp ${projectDir}/bin/cnv_trio_inheritance.py bin/make_report/
+
+    Rscript -e "rmarkdown::render('${cnv_dataset_report_rmd}', 
+        params=list(path_dataset='.',
+        dataset_name='${dataset_name}',
+        path_CNVANNOTATION_repo='.',
+        path_CNVCALLER_repo='.'), 
+        output_file='cnv_dataset_qc.pdf')"
+    """
+}
+
+
 // Build a launch summary file with workflow metadata and timing
 process buildSummary {
     input:
@@ -303,22 +341,32 @@ workflow {
         pdf_cnvDB = producePDFWorkflowCNV(buildCnvDB.out)
         pdf_geneDB = producePDFWorkflowGene(VEP_ANNOTATE.out.geneDB)
         
-        // Step 8: Build a general summary report for the workflow run
+        // Step 8: Produce PDF  QC Report of the CNVs Dataset
+        QCReportPDF(
+            file("${projectDir}/bin/cnv_dataset_report.Rmd"),
+            params.dataset_name,
+            buildCnvDB.out,
+            VEP_ANNOTATE.out.geneDB,
+            params.recurrent_path,
+            params.recurrent_freq_path)
+
+        // Step 9: Build a general summary report for the workflow run
         buildSummary(
             params.dataset_name,
             params.cnvs,
             params.genome_version,
             params.git_hash,
-            pdf_cnvDB
+            QCReportPDF.out
         )
 
     // --- Publish outputs ---
     publish:
-        cnv_db       = buildCnvDB.out                     // Final CNV database
-        gene_db      = VEP_ANNOTATE.out.geneDB            // Annotated gene database
-        summary      = buildSummary.out                   // General workflow summary
-        pdf_cnv      = pdf_cnvDB                          // CNV PDF report
-        pdf_gene     = pdf_geneDB                         // Gene annotation PDF report
+        cnv_db        = buildCnvDB.out                     // Final CNV database
+        gene_db       = VEP_ANNOTATE.out.geneDB            // Annotated gene database
+        summary       = buildSummary.out                   // General workflow summary
+        pdf_cnv       = pdf_cnvDB                          // CNV PDF report
+        pdf_gene      = pdf_geneDB                         // Gene annotation PDF report
+        pdf_qc_report = QCReportPDF.out                    // QC Report – CNVs Dataset
 }
 
 
@@ -340,6 +388,11 @@ output {
     }
 
     pdf_cnv {
+        mode 'copy'
+        path "${params.dataset_name}/docs"
+    }
+
+    pdf_qc_report {
         mode 'copy'
         path "${params.dataset_name}/docs"
     }

@@ -1,0 +1,697 @@
+---
+title: "QC Report – CNVs Dataset"
+output:
+  pdf_document: default
+  html_document: default
+date: "Jacquemont Lab"
+params:
+  dataset_name: "dataset"
+  path_dataset: "/lustre09/project/6008022/LAB_WORKSPACE/DATABASE/CNV/SPARK/Legacy_Array_GRCh38"
+  path_CNVANNOTATION_repo: "/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/"
+  path_CNVCALLER_repo: "/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Caller/"
+---
+
+
+<!-- 
+Rscript -e 'rmarkdown::render("/lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/bioutils/bin/cnv_utils/cnv_dataset_report.Rmd", 
+params=list(path_dataset="/lustre09/project/6008022/LAB_WORKSPACE/DATABASE/CNV/SPARK/SPARK_Array_GRCh37"), 
+output_file="/home/flben/links/projects/rrg-jacquese/flben/report_qc_cnv_dataset/data/SPARK_Array_GRCh37.pdf")'
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(arrow)      # Parquet I/O
+library(dplyr)      # Data manipulation
+library(tidyr)      # Data reshaping
+library(stringr)    # String utilities
+library(ggplot2)    # Plotting
+library(patchwork)  # Plot composition
+library(viridis)    # Color palettes
+library(scales)     # Axis formatting
+library(rlang)
+library(duckdb)
+library(readxl)
+library(ggh4x)
+library(tidyverse)
+
+## ===============================
+## Paths and dataset metadata
+## ===============================
+path_dataset <- params$path_dataset
+dataset_name <- basename(path_dataset)
+
+if (params$dataset_name != "dataset"){
+  dataset_name = params$dataset_name
+}
+
+path_CNVANNOTATION_repo <- params$path_CNVANNOTATION_repo
+path_CNVCALLER_repo    <- params$path_CNVCALLER_repo
+
+
+## ===============================
+## Load CNV database
+## ===============================
+cnvDB <- read_parquet(paste(path_dataset,"/cnvDB.parquet",sep=""))
+
+## Basic dataset statistics
+sample_number <- n_distinct(cnvDB$SampleID)
+
+```
+
+# **Dataset:** `r str_replace_all(dataset_name,"_"," ")`  
+### **Date:** `r format(Sys.Date(), "%d/%m/%Y")`
+### **Number of samples carrying CNVs in the dataset:** `r scales::comma(sample_number)`
+
+\vspace{0.5cm}
+
+# 1- CNV length distribution
+
+This section explores the **size distribution of CNVs** across the dataset, stratified by CNV type
+(e.g. deletion, duplication).
+
+Notes: We only study CNV with ProblematicRegions_Overlap < 0.5 to focus on high-confidence calls.
+
+## A- Histogram of CNV lengths
+
+\vspace{0.5cm}
+```{r cnv-length-dist, echo=FALSE, warning=F, fig.width=7, fig.height=3}
+
+## Remove ambiguous CNVs
+cnvDB <- cnvDB %>%
+  filter(Type == "DEL" | Type == "DUP") %>%
+  filter(ProblematicRegions_Overlap < 0.5) %>%
+  mutate(Length = End - Start + 1)
+
+# Define the positions for annotations
+annot_positions <- c(1e3, 1e4, 1e5, 1e6, 1e7, 1e8)  # bp
+
+ggplot(cnvDB, aes(x = Length, fill = Type)) +   # map fill to Type
+  geom_histogram(binwidth = 0.1, color = "white", position = "dodge") +  # stacked bars by default
+  labs(x = "CNV Length (bp)", y = "Number of CNVs") +
+  theme_bw() +
+  theme(
+    text =  element_text(size = 16),
+    plot.title = element_text(size = 14),
+    strip.text = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14) 
+  ) +
+  annotation_logticks(sides = "bp") +
+  scale_x_log10(labels = label_number(scale_cut = cut_si("bp")),
+                lim = c(500, 1e7),
+                breaks = annot_positions) +
+  scale_fill_manual(values = c("DUP" = "steelblue", "DEL" = "tomato"))  # manually set two colors
+
+```
+
+\vspace{1cm}
+
+## B- Counts per CNV type and size bin
+
+\vspace{0.5cm}
+
+```{r cnv-length-pie, echo=FALSE, warning=F, fig.width=7, fig.height=2}
+
+# Bin CNV lengths
+cnvDB <- cnvDB %>%
+  mutate(
+    LengthBin = cut(
+      Length, 
+      breaks = c(0, 1e4, 5e4, 1e5, 1e6, Inf),
+      labels = c("1-10kb", "10-50kb", "50-100kb", "100kb-1Mb", ">1Mb"),
+      include.lowest = TRUE
+    )
+  )
+
+# Compute total per Type
+total_counts <- cnvDB %>%
+  group_by(Type) %>%
+  summarise(TotalCount = scales::comma(n()), .groups = "drop")
+
+# Join total count back to the CNV table
+cnvDB <- cnvDB %>%
+  left_join(total_counts, by = "Type") %>%
+  mutate(FacetLabel = paste0(Type, " (N= ", TotalCount, ")"))
+
+bin_counts <- cnvDB %>%
+  group_by(LengthBin, FacetLabel) %>%
+  summarise(Count = n(), .groups = "drop")
+
+# Fix colors using viridis
+length_bin_levels <- levels(factor(c("1-10kb", "10-50kb", "50-100kb", "100kb-1Mb", ">1Mb"),levels=c("1-10kb", "10-50kb", "50-100kb", "100kb-1Mb", ">1Mb")))
+fixed_colors <- viridis::viridis(length(length_bin_levels), option = "D")
+names(fixed_colors) <- length_bin_levels
+
+
+ggplot(bin_counts, aes(x = "", y = Count, fill = LengthBin)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  theme_void() +
+  labs(
+    fill = "CNV length category"
+  ) +
+  geom_text(data=bin_counts[bin_counts$Count > 10^(max(log10(bin_counts$Count))-2),],aes(label = Count), position = position_stack(vjust = 0.5), size = 4,color="white") +
+  scale_fill_manual(values = fixed_colors) +
+  facet_wrap(~FacetLabel, scales = "free",ncol=3)+
+  theme(
+    plot.title = element_text(size = 14),
+    strip.text = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14) 
+  )
+```
+
+\vspace{1cm}
+
+## C- Counts per SampleID and CNV type
+
+\vspace{0.5cm}
+```{r cnv-per-sample, echo=FALSE, warning=F, fig.width=5, fig.height=5}
+
+# 1. Compute CNV counts per sample, type, and size category (single pass)
+boxplot_data <- cnvDB %>%
+  mutate(
+    Category = if_else(Length < 50000, 
+                       "Small (< 50kb)", 
+                       "Large (>= 50kb)")
+  ) %>%
+  group_by(SampleID, Type, Category) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  complete(SampleID, Type, Category, fill = list(count = 0)) %>%
+  mutate(
+    Category = factor(Category, levels = c("Small (< 50kb)", "Large (>= 50kb)"))
+  )
+
+# 2. Plot
+ggplot(boxplot_data, aes(x = Type, y = count, fill = Type)) +
+  
+  geom_boxplot(outlier.size = 0.5, outlier.alpha = 0.2) +
+  
+  # Facet by CNV size
+  facet_wrap(~Category, scales = "free_y", ncol = 1) +
+  
+  # Different y-axis limits per facet
+  facetted_pos_scales(
+    y = list(
+      "Small (< 50kb)" = scale_y_continuous(limits = c(0, 100), oob = scales::squish),
+      "Large (>= 50kb)" = scale_y_continuous(limits = c(0, 15), oob = scales::squish)
+    )
+  ) +
+  
+  # Colors
+  scale_fill_manual(values = c("DUP" = "steelblue", "DEL" = "tomato")) +
+  
+  # Labels
+  labs(
+    subtitle = "Specific zoom: 0-100 (Small CNVs) and 0-15 (Large CNVs)",
+    x = "Variant Type",
+    y = "Number of CNVs per sample"
+  ) +
+  
+  # Theme
+  theme_bw() +
+  theme(
+    text = element_text(size = 14),
+    plot.subtitle = element_text(size = 10),
+    strip.text = element_text(face = "bold", size = 12),
+    strip.background = element_rect(fill = "grey95"),
+    legend.position = "none",
+    
+    # Optional spacing between facets
+    panel.spacing.y = unit(1, "cm")
+  )
+```
+
+\newpage
+
+# 2- Mendelian precision analysis
+
+This analysis evaluates the **Mendelian precision** of CNV calls using parent–child trios.
+For each CNV detected in the child, we assess whether a corresponding event is observed in at least one parent, given an overlap threshold of **25% reciprocal overlap**.
+
+Mendelian precision is defined as the **fraction of child CNVs also observed in a parent**, and is reported as a function of **CNV length** and **CNV type**.
+This metric provides a proxy for **call reliability**, with higher precision expected for larger CNVs.
+
+The analysis is performed only if a valid `sampleDB.tsv` file containing trio information
+(`SampleID`, `FatherID`, `MotherID`) is available.
+
+```{r mendelian-possibility, echo=FALSE, warning=F, fig.width=5.5, fig.height=4}
+
+mendelian_precision <- FALSE
+number_trio = 0
+
+sampleDB_path <- file.path(path_dataset, "sampleDB.tsv")
+
+if (!file.exists(sampleDB_path)) {
+  message("Mendelian precision analysis skipped: 'sampleDB.tsv' not found.")
+} else {
+  
+  sampleDB <- read.delim(sampleDB_path)
+  
+  required_cols <- c("SampleID", "FatherID", "MotherID")
+  missing_cols <- setdiff(required_cols, colnames(sampleDB))
+  
+  if (length(missing_cols) > 0) {
+    message(
+      "Mendelian precision analysis skipped: sampleDB.tsv is missing required columns: "
+    )
+    message(
+      paste(missing_cols, collapse = ", ")
+    )
+  } else {
+        # A 'trio' exists if a sample has both a Father and a Mother listed
+        # We check that the IDs are not NA, not empty, and not "0"
+        trios <- sampleDB[
+          !is.na(sampleDB$FatherID) & sampleDB$FatherID != "" & sampleDB$FatherID != "0" &
+          !is.na(sampleDB$MotherID) & sampleDB$MotherID != "" & sampleDB$MotherID != "0", 
+        ]
+    
+        at_least_one_trio <- nrow(trios) > 0
+    
+        if (!at_least_one_trio) {
+          message("Mendelian precision analysis skipped: No complete trios found in sampleDB.")
+        } else {
+              ## -------------------------------
+              ## Run trio inheritance annotation
+              ## -------------------------------
+              cmd <- paste(path_CNVCALLER_repo,"/bin/make_report/cnv_trio_inheritance.py",sep="")
+              
+              dataset_name = str_split_1(path_dataset,"/")[length(str_split_1(path_dataset,"/"))]
+              
+              # Connect to an in-memory DuckDB database
+              con <- dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+                
+              # Filter CNVs to include only shared samples
+              dbExecute(con, sprintf("
+                CREATE TEMP TABLE cnv_gene_DB AS
+                SELECT c.*
+                FROM read_parquet('%s/cnvDB.parquet') c
+                WHERE ProblematicRegions_Overlap < 0.5
+              ", path_dataset))
+              
+              # Save CNV-gene table for this dataset
+              dbExecute(con, sprintf("
+                COPY cnv_gene_DB
+                TO 'cnv_gene_DB_%s.parquet'
+                (FORMAT PARQUET)
+              ", dataset_name))
+              
+              # Disconnect from DuckDB
+              dbDisconnect(con, shutdown = TRUE)
+
+              system2(
+                "python3",
+                args = c(
+                  cmd,
+                  "-c", paste("cnv_gene_DB_", dataset_name,".parquet",sep=""),
+                  "-p", paste(path_dataset,"/sampleDB.tsv",sep=""),
+                  "-t", "Type",
+                  "-f", "0.25"
+                )
+              )
+              
+              unlink(paste("cnv_gene_DB_", dataset_name,".parquet",sep=""), force = TRUE)
+
+              ## -------------------------------
+              ## Load annotated CNVs
+              ## -------------------------------
+              cnvDB_trio <- read.delim("annotated_child_cnv.tsv") %>%
+                filter(Type == "DEL" | Type == "DUP")
+              
+              number_trio <- n_distinct(cnvDB_trio$SampleID) 
+
+              if (number_trio == 0) {
+                message("Mendelian precision analysis skipped: no child CNVs with trio information found.")
+              } else {
+              mendelian_precision <- TRUE
+      }
+    }
+  }
+}
+```
+
+## **Number of trios in the dataset:** `r scales::comma(number_trio)`
+
+\vspace{0.5cm}
+
+## A- Overall Mendelian precision
+
+\vspace{0.5cm}
+```{r mendelian-precision, echo=FALSE, warning=F, fig.width=5.5, fig.height=4}
+
+if (!mendelian_precision) {
+  message("Mendelian precision not possible: missing or incomplete sampleDB.tsv.")
+} else {
+    ## -------------------------------
+    ## Bin CNV lengths
+    ## -------------------------------
+    cnvDB_trio <- cnvDB_trio %>%
+      mutate(
+        LengthBin = cut(
+          Length, 
+          breaks = c(0, 1e4, 5e4, 1e5, 1e6, Inf),  # in bp
+          labels = c("1-10kb", "10-50kb", "50-100kb", "100kb-1Mb", ">1Mb"),
+          include.lowest = TRUE
+        )
+      )
+    
+    
+    ## -------------------------------
+    ## Mendelian precision per bin
+    ## -------------------------------
+    mendelian_precision_df <- cnvDB_trio %>%
+      group_by(LengthBin, Type) %>%
+      summarise(
+        Total_CNVs = n(),
+        Avg_Length = mean(Length),
+        Observed_in_Parent = sum(Observed_in_Parent_0.25 == "true", na.rm = TRUE),
+        Mendelian_Precision = Observed_in_Parent / Total_CNVs,
+        SE = sqrt(Mendelian_Precision * (1 - Mendelian_Precision) / Total_CNVs),
+        .groups = "drop"
+      )
+    
+    ## -------------------------------
+    ## Plot
+    ## -------------------------------
+    ggplot(mendelian_precision_df, aes(x = LengthBin,y = Mendelian_Precision, color = Type)) +   # map fill to Type
+      theme_bw() + geom_errorbar(aes(ymin = Mendelian_Precision - SE, ymax = Mendelian_Precision + SE), width = 0.1) +
+      geom_point(size=2) +
+      labs(
+        x = "CNV length category",
+        y = "Mendelian precision"
+      ) + geom_text(aes(label=round(Mendelian_Precision,2)) ,hjust=-0.3) +
+      scale_color_manual(values = c("DUP" = "steelblue", "DEL" = "tomato"))  + ylim(0,1)+
+      theme(
+        text =  element_text(size = 14),
+        plot.title = element_text(size = 14),
+        axis.text.x = element_text(size = 12, angle=30, vjust=0.5),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 14) 
+      )
+    
+}
+```
+
+\newpage
+
+## B- Visual Guide for QC Threshold Selection
+
+
+This section provides graphics that help to set manual filtering thresholds.
+
+By observing the relationship between numeric metrics and Mendelian precision, you can visually determine at which score a metric becomes a reliable predictor of a "true" CNV.
+
+\vspace{0.5cm}
+
+```{r mendelian-message, echo=FALSE, warning=F, fig.width=5.5, fig.height=4}
+
+if (!mendelian_precision) {
+  message("Mendelian precision not possible: missing or incomplete sampleDB.tsv.")
+}
+```
+
+
+```{r mendelian-precision-qc, echo=FALSE, warning=F, message=F, fig.width=11, fig.height=9}
+
+if (mendelian_precision) {
+  
+    # 1. Global Data Preparation
+    df_long <- cnvDB_trio %>%
+      # Explicitly exclude position columns, IDs, and specific metrics not needed for study
+      select(-matches("Start|End|Chr|SampleID|CNV_ID|rCNV_ID|sum_LOEUF|Gnomad_Max_AF")) %>%
+      # Create size groups and binary target
+      mutate(
+        target = as.numeric(as.logical(Observed_in_Parent_0.25)),
+        group = if_else(Length >= 50000, "Large (>= 50kb)", "Small (< 50kb)")
+      ) %>%
+      # Pivot to long format for faceting (excluding metadata and grouping columns)
+      pivot_longer(
+        cols = where(is.numeric) & !c(target, Length), 
+        names_to = "metric_name", 
+        values_to = "metric_value"
+      ) %>%
+      drop_na(metric_value, target)
+
+    # 2. Calculate Binned Statistics per Metric
+    n_bins <- 20
+    binned_all <- df_long %>%
+      group_by(metric_name, group) %>%
+      # Create metric-specific bins
+      mutate(bin = cut(metric_value, breaks = n_bins)) %>%
+      group_by(metric_name, group, bin) %>%
+      summarise(
+        mean_score = mean(metric_value, na.rm = TRUE),
+        precision = mean(target, na.rm = TRUE),
+        n = n(),
+        .groups = 'drop'
+      ) %>%
+      filter(n > 10) %>%
+      mutate(
+        # Standard Error of the proportion
+        se = sqrt((precision * (1 - precision)) / n),
+        # 95% Confidence Interval
+        lower = pmax(0, precision - 1.96 * se),
+        upper = pmin(1, precision + 1.96 * se)
+      )
+
+    file.remove("annotated_child_cnv.tsv")
+
+    # 3. Generate Panel (Facet Wrap)
+    ggplot(binned_all, aes(x = mean_score, y = precision, color = group, fill = group)) +
+      # Confidence intervals
+      geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.15, color = NA) +
+      # Trend lines
+      geom_line(size = 1) +
+      # Points sized by volume of data
+      geom_point(aes(size = n), alpha = 0.6) +
+      # Create one panel per QC metric with independent X axes
+      facet_wrap(~ metric_name, scales = "free_x") + 
+      scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+      scale_color_manual(values = c("Small (< 50kb)" = "#88CCEE", "Large (>= 50kb)" = "#117733")) +
+      scale_fill_manual(values = c("Small (< 50kb)" = "#88CCEE", "Large (>= 50kb)" = "#117733")) +
+      labs(
+        title = "Systematic comparison of metrics (CNVs stratified by < 50kb vs >= 50kb)",
+        x = "Metric Value",
+        y = "Mendelian Precision (% Inherited)",
+        size = "Number of CNVs",
+        color = "Size Category", 
+        fill = "Size Category"
+      ) +
+      theme_bw() +
+      theme(
+        legend.position = "bottom",
+        strip.background = element_rect(fill = "grey90"),
+        strip.text = element_text(face = "bold",size = 12)
+      ) +
+      theme(legend.position = "bottom",
+        legend.box = "vertical",
+        legend.direction = "horizontal",
+        text =  element_text(size = 17),
+        plot.title = element_text(size = 17),
+        axis.text.x = element_text(size = 12, angle=30, vjust=0.7),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 17) 
+      ) + theme(
+  panel.spacing.x = unit(0.5, "cm")  # increase horizontal space
+)
+  
+}
+```
+
+\newpage
+
+# 3- rCNV frequency comparison with UK Biobank–based studies
+
+This analysis compares **recurrent CNV (rCNV) frequencies** observed in the current dataset
+to frequencies reported in large external cohorts, primarily **UK Biobank–based studies**.
+
+For each rCNV:
+
+* Frequency is defined as the **percentage of samples carrying at least one event**
+* Comparisons are performed **pairwise** between this dataset and published references
+* Analyses are stratified by **rare (< 0.06%)** and **more frequent (> 0.06%)** rCNVs
+
+\vspace{0.5cm}
+
+```{r rcnv-frequency-comparison, echo=FALSE, warning=F, fig.width=10, fig.height=8}
+
+## -------------------------------
+## Load external rCNV frequencies
+## -------------------------------
+freq_rCNV <- read_excel(paste(path_CNVANNOTATION_repo,"/resources/rCNV/docs/frequency_comparison.xlsx",sep=""))
+
+group_rCNV <- read.delim(paste(path_CNVANNOTATION_repo,"/resources/rCNV/geneset_per_rCNV.tsv",sep=""))
+rownames(group_rCNV) = group_rCNV$rCNV_ID
+
+freq_rCNV = freq_rCNV[,c("Reference","Group_ID","Frequency")]
+
+freq_rCNV = freq_rCNV[freq_rCNV$Reference %in% c("Kendall et al, 2019","Crawford et al, 2019","supp_cecile_2025"),]
+freq_rCNV$Reference <- str_replace_all(freq_rCNV$Reference, ",", "")
+
+
+
+## -------------------------------
+## Compute rCNV frequencies
+## -------------------------------
+number_samples <- n_distinct(cnvDB$SampleID)
+
+base_id <- str_replace_all(cnvDB$rCNV_ID, "_del|_dup", "")
+suffix  <- str_extract(cnvDB$rCNV_ID, "_del|_dup")
+
+cnvDB$Group_ID <- paste0(
+  group_rCNV[base_id, "Group_ID"],
+  suffix
+)
+
+
+rCNV_stats <- cnvDB %>%
+  group_by(Group_ID) %>%
+  summarise(
+    Reference = dataset_name,
+    Count = n(),                     # how many times this rCNV appears
+    Frequency = n_distinct(SampleID) / number_samples*100,  # fraction of samples carrying it
+    .groups = "drop"
+  )
+
+rCNV_stats = rCNV_stats[,c("Reference","Group_ID","Frequency")]
+
+merged_bins = rbind(rCNV_stats,freq_rCNV)
+
+
+## -------------------------------
+## Merge internal and external data
+## -------------------------------
+merged_bins <- merged_bins %>%
+  filter(Frequency != "-" & !is.na(Frequency)) %>%
+  mutate(Frequency = as.numeric(Frequency))
+
+merged_bins <- merged_bins %>%
+  mutate(
+    Reference = gsub("[ ,]", "_", Reference)
+  )
+
+freq_wide <- merged_bins %>%
+  pivot_wider(names_from = Reference, values_from = Frequency)
+
+
+## -------------------------------
+## Pairwise regression plots
+## -------------------------------
+plot_list <- list()
+x_col = dataset_name
+freq_threshold <- 0.06
+
+for (label in c("Rare", "Common")) {
+  for(y_col in colnames(freq_wide)[c(-1,-2)]) {
+  
+    plot_data <- freq_wide %>%
+      filter(!is.na(.data[[x_col]]) & !is.na(.data[[y_col]])) %>%
+      filter(
+        if (label == "Rare") .data[[x_col]] <= freq_threshold
+        else .data[[x_col]] > freq_threshold
+      )
+      
+    # Check if we actually have data points to plot
+    if (nrow(plot_data) > 1) {
+      lm_fit <- lm(plot_data[[y_col]] ~ plot_data[[x_col]])
+      r2 <- summary(lm_fit)$r.squared
+      r2_label <- round(r2, 3)
+    } else {
+      # If no data, we set R2 to NA or 0 to avoid crashing
+      r2_label <- "N/A"
+    }
+    p <- ggplot(plot_data, aes(x = .data[[x_col]], y = .data[[y_col]])) +
+      geom_abline() +
+      geom_point(pch = 21, size = 3, fill = "darkgrey", alpha = 0.8) +
+      labs(
+        x = paste0(str_replace_all(x_col,"_"," "), " frequency (%)"),
+        y = paste0(str_replace_all(y_col,"_"," "), " frequency (%)"),
+        title = paste0(
+          label, " rCNVs (", 
+          ifelse(label == "Rare", "<=", ">"),
+          " 0.06%)\nR² = ", r2_label
+        )
+      ) +
+      theme_bw() +
+      theme(
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        plot.title = element_text(size = 14)
+      )
+    
+    plot_list[[paste(y_col, label)]] <- p
+  }
+}
+
+wrap_plots(plot_list, ncol = 3) & 
+  theme(plot.margin = margin(t = 20, r = 5, b = 20, l = 5))
+
+```
+
+
+\newpage
+
+# 4- Analysis of CNV frequency as a function of cumulative LOEUF
+
+This analysis examines the relationship between **CNV frequency** and the **cumulative LOEUF burden** of genes overlapped by each CNV.
+
+For each CNV, `sum_LOEUF` corresponds to the **sum of LOEUF values** of all *canonical transcripts* whose exons are overlapped by the CNV.
+CNV frequency is computed **relative to all CNVs of a given type**, including CNVs that do **not overlap any canonical transcript** (these are excluded from LOEUF binning but included in the denominator).
+
+Under purifying selection, we expect CNVs overlapping **LOEUF-intolerant genes** (low cumulative LOEUF) to be **rarer**, resulting in a decreasing CNV frequency with increasing cumulative LOEUF.
+
+\vspace{0.5cm}
+
+```{r cnv-loeuf-frequency, echo=FALSE, warning=F, fig.width=5.5, fig.height=3.5}
+
+## -------------------------------
+## Bin cumulative LOEUF
+## -------------------------------
+cnvDB <- cnvDB %>%
+  mutate(
+    LOEUF_bin = cut(sum_LOEUF, breaks = seq(0, max(sum_LOEUF, na.rm = TRUE), by = 2), include.lowest = TRUE)
+  )
+
+## -------------------------------
+## Total CNVs per type (denominator)
+## -------------------------------
+total_per_type <- cnvDB %>%
+  group_by(Type) %>%
+  summarise(TotalCNV = n(), .groups = "drop")
+
+## -------------------------------
+## CNV frequency per LOEUF bin
+## -------------------------------
+freq_by_LOEUF <- cnvDB[!is.na(cnvDB$LOEUF_bin),] %>%
+  group_by(Type, LOEUF_bin) %>%
+  summarise(
+    CNV_Count = n(),
+    Avg_LOEUF = mean(sum_LOEUF, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(total_per_type, by = "Type") %>%
+  mutate(Frequency = CNV_Count / TotalCNV)
+
+
+## -------------------------------
+## Plot
+## -------------------------------
+ggplot(freq_by_LOEUF, aes(x = Avg_LOEUF, y = Frequency, col = Type)) +
+  geom_line(stat = "identity", position = "dodge") +
+  labs(
+    x = "Average cumulative LOEUF per CNV",
+    y = "CNV frequency", 
+    title = "CNV frequency as a function of cumulative LOEUF") +
+  theme_bw() + geom_point() +
+  scale_color_manual(values = c("DUP" = "steelblue", "DEL" = "tomato"))+ xlim(0,50)+
+  theme(
+    text =  element_text(size = 14),
+    plot.title = element_text(size = 14),
+    strip.text = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14) 
+  )
+
+```

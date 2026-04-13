@@ -27,6 +27,7 @@ Required software:
 You might need to pull the following containers if working **offline**, or you can try using conda (see `nextflow.config`):
 * **docker://ghcr.io/jacquemontlab/python_packages:latest**
 * **docker://ghcr.io/jacquemontlab/ensembl_113:latest**
+* **docker://ghcr.io/jacquemontlab/cnv_dataset_report_latest:latest**
 
 ### Download required VEP cache files 
 
@@ -102,6 +103,8 @@ sbatch /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotat
 ## Outputs
 
 There are two output tables and in `docs/` are saved their corresponding `columns_report.pdf`.
+Also, for downstream analyses, we recommend filtering the final CNV set considering `docs/cnv_dataset_qc.pdf`.
+
 
 #### **cnvDB.parquet**
 
