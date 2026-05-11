@@ -64,7 +64,7 @@ The pipeline can be tested using the test profile and the images hosted on githu
 ```bash
 container=docker # or apptainer or singularity
 
-nextflow run main.nf -profile test,${container}
+nextflow run main.nf -profile test,${container} --genome_version GRCh38
 ```
 
 ### Example
