@@ -48,7 +48,7 @@ docker run --rm -it \
 
 | Parameter          | Description                                         | Default    |
 | ------------------ | --------------------------------------------------- | ---------- |
-| `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | GRCh38     |
+| `--genome_version` | Human genome assembly version. (accepted: `GRCh38`\|`GRCh37`) | *Required*     |
 | `--cnvs`           | TSV file containing CNVs. <details><summary>Format</summary><small>With at least `SampleID  Chr  Start  End  Type`. All other columns are preserved in the output.<br> `Type` is a string that must be either `"DEL"` or `"DUP"`.<br> `Chr` should be formatted as `"chr1"`–`"chr22"`, `"chrX"`, or `"chrY"`.</small></details>     | *Required* |
 | `--dataset_name`   | Name of the dataset, used for directory and report naming.    | dataset    |
 | `--vep_cache`      | Path to the VEP cache directory                               | ${projectDir}/resources/vep_cache |
