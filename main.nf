@@ -38,7 +38,6 @@ params.vep_cache = "${projectDir}/resources/vep_cache"
 params.genomic_regions = "${projectDir}/resources/Genome_Regions/Genome_Regions_data.tsv"
 params.recurrent_path = "${projectDir}/resources/rCNV/geneset_per_rCNV.tsv"
 params.recurrent_freq_path = "${projectDir}/resources/rCNV/docs/frequency_comparison.xlsx"
-params.gnomad_dir = "${params.vep_cache}/homo_sapiens" 
 
 def gnomad_AF
 def gnomad_constraints = "${params.vep_cache}/ressources_LOEUF/gnomad.v4.1.constraint_metrics.tsv"
