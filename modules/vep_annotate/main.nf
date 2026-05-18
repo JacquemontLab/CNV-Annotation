@@ -130,7 +130,7 @@ process buildGeneDB {
     script:
     """
     # First transform large VEP output to parquet
-    duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t', nullstr='-')) 
+    duckdb -c "COPY (SELECT * FROM read_csv(${vep_out}, delim = '\\t')) 
                TO 'tmp_db.parquet' (FORMAT 'PARQUET');"
 
     # Formatting output
