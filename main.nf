@@ -9,7 +9,7 @@ Description
 -----------
 Builds an annotated CNV (copy-number variant) database from input CNVs. 
 Reduces redundancy by identifying unique CNVs, annotates them with VEP, 
-computes overlaps with genomic regions, aggregates LOEUF scores, integrates 
+computes overlaps with genomic regions, aggregates 1/LOEUF scores, integrates 
 recurrent CNVs, and produces CNV- and gene-level PDF reports.
 
 Workflow Steps
@@ -17,7 +17,7 @@ Workflow Steps
 1. Identify unique CNVs to minimize redundant annotation.
 2. Annotate CNVs using VEP (functional and gnomAD metrics).
 3. Compute overlaps with genomic regions.
-4. Aggregate LOEUF scores per CNV.
+4. Aggregate 1/LOEUF scores per CNV.
 5. Build the CNV database (Parquet format).
 6. Add recurrent CNV annotations.
 7. Generate PDF reports and a global workflow summary.
@@ -126,7 +126,7 @@ process buildCnvDB {
     # Step 2: Merge with sum_loeuf_gnomAD_cnv database on CNV_ID
     duckdb -c "
         COPY (
-        SELECT r.*, c.sum_LOEUF, c.Gnomad_Max_AF
+        SELECT r.*, c.sum_inv_LOEUF, c.Gnomad_Max_AF
         FROM read_parquet('cnvDB_region.parquet') AS r
         LEFT JOIN read_parquet('${sum_loeuf_gnomAD_cnv}') AS c
         USING (CNV_ID)

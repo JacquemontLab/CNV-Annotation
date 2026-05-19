@@ -20,12 +20,12 @@ process sum_loeuf_gnomAD_cnv {
         COPY (
             SELECT
                 c.*,
-                g.sum_LOEUF
+                ROUND(g.sum_inv_LOEUF, 5) AS sum_inv_LOEUF
             FROM '${uniq_cnv_parquet}' AS c
             LEFT JOIN (
                 SELECT
                     CNV_ID,
-                    SUM(LOEUF) AS sum_LOEUF
+                    SUM(1.0 / LOEUF) AS sum_inv_LOEUF
                 FROM '${geneDB}'
                 WHERE CANONICAL = TRUE
                 AND Exon_Overlap > 0

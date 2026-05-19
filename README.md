@@ -117,7 +117,7 @@ Also, for downstream analyses, we recommend filtering the final CNV set consider
 |string     | **Type**               | CNV type. Either __'DEL'__ or __'DUP'__                    | 
 |...| *__INPUT COLUMNS__* |                           |	
 |float      | **ProblematicRegions_Overlap**  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
-|int        | **sum_LOEUF**              | Sum of the LOEUF values of canonical transcripts whose exons are overlapped by the CNV. |	
+|int        | **sum_inv_LOEUF**          | Sum of the 1/LOEUF values of canonical transcripts whose exons are overlapped by the CNV. |	
 |float      | **Gnomad_Max_AF**          | Maximum allele frequency of matching structural variant across populations. See section 'Gnomad_Max_AF'. |  
 |string     | **rCNV_ID**                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'. |	
 

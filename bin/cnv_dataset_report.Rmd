@@ -76,7 +76,7 @@ Notes: We only study CNV with ProblematicRegions_Overlap < 0.5 to focus on high-
 ## A- Histogram of CNV lengths
 
 \vspace{0.5cm}
-```{r cnv-length-dist, echo=FALSE, warning=F, fig.width=7, fig.height=3}
+```{r cnv-length-dist, echo=FALSE, warning=F, fig.width=6, fig.height=3}
 
 ## Remove ambiguous CNVs
 cnvDB <- cnvDB %>%
@@ -92,11 +92,12 @@ ggplot(cnvDB, aes(x = Length, fill = Type)) +   # map fill to Type
   labs(x = "CNV Length (bp)", y = "Number of CNVs") +
   theme_bw() +
   theme(
-    text =  element_text(size = 16),
-    plot.title = element_text(size = 14),
-    strip.text = element_text(size = 12),
-    legend.text = element_text(size = 12),
-    legend.title = element_text(size = 14) 
+    text =  element_text(size = 14),
+    axis.title = element_text(size = 12),
+    plot.title = element_text(size = 11),
+    strip.text = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 11) 
   ) +
   annotation_logticks(sides = "bp") +
   scale_x_log10(labels = label_number(scale_cut = cut_si("bp")),
@@ -156,6 +157,7 @@ ggplot(bin_counts, aes(x = "", y = Count, fill = LengthBin)) +
   scale_fill_manual(values = fixed_colors) +
   facet_wrap(~FacetLabel, scales = "free",ncol=3)+
   theme(
+    axis.title = element_text(size = 12),
     plot.title = element_text(size = 14),
     strip.text = element_text(size = 12),
     legend.text = element_text(size = 12),
@@ -168,7 +170,7 @@ ggplot(bin_counts, aes(x = "", y = Count, fill = LengthBin)) +
 ## C- Counts per SampleID and CNV type
 
 \vspace{0.5cm}
-```{r cnv-per-sample, echo=FALSE, warning=F, fig.width=5, fig.height=5}
+```{r cnv-per-sample, echo=FALSE, warning=F, fig.width=4, fig.height=5}
 
 # 1. Compute CNV counts per sample, type, and size category (single pass)
 boxplot_data <- cnvDB %>%
@@ -184,6 +186,23 @@ boxplot_data <- cnvDB %>%
     Category = factor(Category, levels = c("Small (< 50kb)", "Large (>= 50kb)"))
   )
 
+# 2. Compute automatic y-axis limits per facet (99th percentile cap)
+auto_limits <- boxplot_data %>%
+  group_by(Category) %>%
+  summarise(
+    ymax = ceiling(quantile(count, 0.95) * 1.15),  # 99th percentile + 15% headroom
+    .groups = "drop"
+  ) %>%
+  deframe()  # named vector: Category -> ymax
+
+# 3. Build named scale list for facetted_pos_scales
+y_scales <- setNames(
+  lapply(names(auto_limits), function(cat) {
+    scale_y_continuous(limits = c(0, auto_limits[[cat]]), oob = scales::squish)
+  }),
+  names(auto_limits)
+)
+
 # 2. Plot
 ggplot(boxplot_data, aes(x = Type, y = count, fill = Type)) +
   
@@ -193,19 +212,18 @@ ggplot(boxplot_data, aes(x = Type, y = count, fill = Type)) +
   facet_wrap(~Category, scales = "free_y", ncol = 1) +
   
   # Different y-axis limits per facet
-  facetted_pos_scales(
-    y = list(
-      "Small (< 50kb)" = scale_y_continuous(limits = c(0, 100), oob = scales::squish),
-      "Large (>= 50kb)" = scale_y_continuous(limits = c(0, 15), oob = scales::squish)
-    )
-  ) +
+  facetted_pos_scales(y = y_scales) +
   
   # Colors
   scale_fill_manual(values = c("DUP" = "steelblue", "DEL" = "tomato")) +
   
   # Labels
   labs(
-    subtitle = "Specific zoom: 0-100 (Small CNVs) and 0-15 (Large CNVs)",
+  subtitle = paste0(
+      "Zoom : ",
+      "Small CNVs 0-", auto_limits[["Small (< 50kb)"]],
+      ", Large CNVs 0-", auto_limits[["Large (>= 50kb)"]]
+    ),
     x = "Variant Type",
     y = "Number of CNVs per sample"
   ) +
@@ -213,6 +231,7 @@ ggplot(boxplot_data, aes(x = Type, y = count, fill = Type)) +
   # Theme
   theme_bw() +
   theme(
+    axis.title = element_text(size = 12),
     text = element_text(size = 14),
     plot.subtitle = element_text(size = 10),
     strip.text = element_text(face = "bold", size = 12),
@@ -278,7 +297,7 @@ if (!file.exists(sampleDB_path)) {
               ## -------------------------------
               cmd <- paste(path_CNVCALLER_repo,"/bin/make_report/cnv_trio_inheritance.py",sep="")
               
-              dataset_name = str_split_1(path_dataset,"/")[length(str_split_1(path_dataset,"/"))]
+              dataset_name_file = str_split_1(path_dataset,"/")[length(str_split_1(path_dataset,"/"))]
               
               # Connect to an in-memory DuckDB database
               con <- dbConnect(duckdb::duckdb(), dbdir = ":memory:")
@@ -296,7 +315,7 @@ if (!file.exists(sampleDB_path)) {
                 COPY cnv_gene_DB
                 TO 'cnv_gene_DB_%s.parquet'
                 (FORMAT PARQUET)
-              ", dataset_name))
+              ", dataset_name_file))
               
               # Disconnect from DuckDB
               dbDisconnect(con, shutdown = TRUE)
@@ -305,14 +324,14 @@ if (!file.exists(sampleDB_path)) {
                 "python3",
                 args = c(
                   cmd,
-                  "-c", paste("cnv_gene_DB_", dataset_name,".parquet",sep=""),
+                  "-c", paste("cnv_gene_DB_", dataset_name_file,".parquet",sep=""),
                   "-p", paste(path_dataset,"/sampleDB.tsv",sep=""),
                   "-t", "Type",
                   "-f", "0.25"
                 )
               )
               
-              unlink(paste("cnv_gene_DB_", dataset_name,".parquet",sep=""), force = TRUE)
+              unlink(paste("cnv_gene_DB_", dataset_name_file,".parquet",sep=""), force = TRUE)
 
               ## -------------------------------
               ## Load annotated CNVs
@@ -384,6 +403,7 @@ if (!mendelian_precision) {
       ) + geom_text(aes(label=round(Mendelian_Precision,2)) ,hjust=-0.3) +
       scale_color_manual(values = c("DUP" = "steelblue", "DEL" = "tomato"))  + ylim(0,1)+
       theme(
+        axis.title = element_text(size = 12),
         text =  element_text(size = 14),
         plot.title = element_text(size = 14),
         axis.text.x = element_text(size = 12, angle=30, vjust=0.5),
@@ -420,7 +440,7 @@ if (mendelian_precision) {
     # 1. Global Data Preparation
     df_long <- cnvDB_trio %>%
       # Explicitly exclude position columns, IDs, and specific metrics not needed for study
-      select(-matches("Start|End|Chr|SampleID|CNV_ID|rCNV_ID|sum_LOEUF|Gnomad_Max_AF")) %>%
+      select(-matches("Start|End|Chr|SampleID|CNV_ID|rCNV_ID|sum_inv_LOEUF|Gnomad_Max_AF")) %>%
       # Create size groups and binary target
       mutate(
         target = as.numeric(as.logical(Observed_in_Parent_0.25)),
@@ -632,66 +652,50 @@ wrap_plots(plot_list, ncol = 3) &
 
 
 \newpage
+# 4- Analysis of CNV gene constraint burden as a function of cumulative 1/LOEUF
 
-# 4- Analysis of CNV frequency as a function of cumulative LOEUF
+This section describes the distribution of CNVs according to their **gene constraint burden**, measured as the cumulative 1/LOEUF of genes overlapped by each CNV.
 
-This analysis examines the relationship between **CNV frequency** and the **cumulative LOEUF burden** of genes overlapped by each CNV.
+For each CNV, `sum_inv_LOEUF` is defined as the sum of 1/LOEUF values for all canonical transcripts overlapping the CNV. Higher values indicate overlap with more constraint-intolerant genes.
 
-For each CNV, `sum_LOEUF` corresponds to the **sum of LOEUF values** of all *canonical transcripts* whose exons are overlapped by the CNV.
-CNV frequency is computed **relative to all CNVs of a given type**, including CNVs that do **not overlap any canonical transcript** (these are excluded from LOEUF binning but included in the denominator).
-
-Under purifying selection, we expect CNVs overlapping **LOEUF-intolerant genes** (low cumulative LOEUF) to be **rarer**, resulting in a decreasing CNV frequency with increasing cumulative LOEUF.
+CNVs affecting highly constrained genes are expected to be depleted compared to less constrained regions.
 
 \vspace{0.5cm}
 
-```{r cnv-loeuf-frequency, echo=FALSE, warning=F, fig.width=5.5, fig.height=3.5}
 
-## -------------------------------
-## Bin cumulative LOEUF
-## -------------------------------
-cnvDB <- cnvDB %>%
-  mutate(
-    LOEUF_bin = cut(sum_LOEUF, breaks = seq(0, max(sum_LOEUF, na.rm = TRUE), by = 2), include.lowest = TRUE)
-  )
+```{r cnv-loeuf-frequency, echo=FALSE, warning=F, fig.width=5.5, fig.height=3}
 
-## -------------------------------
-## Total CNVs per type (denominator)
-## -------------------------------
-total_per_type <- cnvDB %>%
-  group_by(Type) %>%
-  summarise(TotalCNV = n(), .groups = "drop")
-
-## -------------------------------
-## CNV frequency per LOEUF bin
-## -------------------------------
-freq_by_LOEUF <- cnvDB[!is.na(cnvDB$LOEUF_bin),] %>%
-  group_by(Type, LOEUF_bin) %>%
-  summarise(
-    CNV_Count = n(),
-    Avg_LOEUF = mean(sum_LOEUF, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  left_join(total_per_type, by = "Type") %>%
-  mutate(Frequency = CNV_Count / TotalCNV)
-
-
-## -------------------------------
-## Plot
-## -------------------------------
-ggplot(freq_by_LOEUF, aes(x = Avg_LOEUF, y = Frequency, col = Type)) +
-  geom_line(stat = "identity", position = "dodge") +
+ggplot(cnvDB %>% filter(sum_inv_LOEUF > 0),
+       aes(x = sum_inv_LOEUF, fill = Type)) +
+  geom_histogram(bins = 50, alpha = 0.7, position = "identity") +
+  scale_x_log10() +
+  theme_bw() +
   labs(
-    x = "Average cumulative LOEUF per CNV",
-    y = "CNV frequency", 
-    title = "CNV frequency as a function of cumulative LOEUF") +
-  theme_bw() + geom_point() +
-  scale_color_manual(values = c("DUP" = "steelblue", "DEL" = "tomato"))+ xlim(0,50)+
+    x = "Cumulative 1/LOEUF per CNV",
+    y = "Number of CNVs"
+  ) +
+  scale_fill_manual(values = c("DUP" = "steelblue", "DEL" = "tomato")) +
+  annotation_logticks(sides = "bp")  +
+  annotate(
+    "text",
+    x = Inf, y = Inf,
+    label = sprintf(
+      "Mean: %.2f\nMedian: %.2f",
+      mean(cnvDB$sum_inv_LOEUF[cnvDB$sum_inv_LOEUF > 0], na.rm = TRUE),
+      median(cnvDB$sum_inv_LOEUF[cnvDB$sum_inv_LOEUF > 0], na.rm = TRUE)
+    ),
+    size = 3,
+    color = "black",
+    hjust = 2,
+    vjust = 1.3
+  )+
   theme(
     text =  element_text(size = 14),
-    plot.title = element_text(size = 14),
-    strip.text = element_text(size = 12),
-    legend.text = element_text(size = 12),
-    legend.title = element_text(size = 14) 
-  )
+    axis.title = element_text(size = 12),
+    plot.title = element_text(size = 11),
+    strip.text = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 11) 
+  ) 
 
 ```
