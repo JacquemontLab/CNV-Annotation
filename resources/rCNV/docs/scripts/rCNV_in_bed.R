@@ -18,7 +18,7 @@ library(dplyr)
 library(tidyr)
 
 # Load Excel file
-rCNV_df <- read_excel("~/flben/Git/CNV-Annotation/resources/rCNV/docs/recurrent_CNV_dataset.xlsx")
+rCNV_df <- read_excel("/home/flben/Documents/CNV-Annotation/resources/rCNV/docs/recurrent_CNV_dataset.xlsx")
 
 # Assign clean column names
 colnames(rCNV_df) <- rCNV_df[1, ]
@@ -39,7 +39,7 @@ for(genome_version in c("GRCh37","GRCh38")){
   bed <- tmp[, c("Chr", "Start", "Stop")]
   
   # Output path
-  out_file <- paste0("~/flben/recurrent_CNV/data/processed/clean/cnv_regions_", genome_version, ".bed")
+  out_file <- paste0("cnv_regions_", genome_version, ".bed")
   
   # Save BED file
   write.table(bed,

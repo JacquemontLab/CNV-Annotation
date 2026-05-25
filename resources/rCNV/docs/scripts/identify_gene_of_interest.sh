@@ -36,7 +36,7 @@ for genome_version in GRCh37 GRCh38; do
     #   --overlaps  : report overlap with known features
     #   --biotype   : add gene biotype info
     #   --canonical : keep only canonical transcripts
-    apptainer exec /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/VEP/vep.sif \
+    apptainer exec /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/Dockers/ensembl_113_latest.sif \
         vep --input_file "dummy_${genome_version}.vcf" \
             --dir_cache /lustre09/project/6008022/LAB_WORKSPACE/SOFTWARE/VEP/cache \
             --offline \
@@ -67,7 +67,7 @@ for genome_version in GRCh37 GRCh38; do
             t.Stop,
             'DUP' AS Type,
         FROM read_csv_auto('dummy_annotated_${genome_version}.txt', delim='\t', header=true, all_varchar=true) b
-        LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/flben/Git/CNV-Annotation/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
+        LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
         ON b.Feature = t.Transcript_ID
         WHERE b.CANONICAL = 'YES'
         AND b.BIOTYPE = 'protein_coding'
@@ -84,7 +84,7 @@ for genome_version in GRCh37 GRCh38; do
         SUM(CASE WHEN t.Transcript_ID IS NOT NULL THEN 1 ELSE 0 END) AS matched,
         SUM(CASE WHEN t.Transcript_ID IS NULL THEN 1 ELSE 0 END) AS not_matched
     FROM read_csv_auto('dummy_annotated_${genome_version}.txt', delim='\t', header=true, all_varchar=true) b
-    LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/flben/Git/CNV-Annotation/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
+    LEFT JOIN read_parquet('/home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/resources/Transcript_Metadata/transcriptDB_${genome_version}.parquet') t
     ON b.Feature = t.Transcript_ID
     WHERE b.CANONICAL = 'YES'
     AND b.BIOTYPE = 'protein_coding'
@@ -94,7 +94,7 @@ for genome_version in GRCh37 GRCh38; do
 
     ################ STEP 4: REMOVE PROBLEMATIC TRANSCRIPTS ################
     # Load predefined problematic genomic regions and filter transcripts overlapping them by >=50%.
-    regions_file=/home/flben/links/projects/rrg-jacquese/flben/Git/CNV-Caller/resources/Genome_Regions/Genome_Regions_data.tsv
+    regions_file=/home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Caller/resources/Genome_Regions/Genome_Regions_data.tsv
     problematicregions_db=$(mktemp --suffix=.bed)
 
     # Extract problematic regions for this specific genome version
@@ -109,7 +109,7 @@ for genome_version in GRCh37 GRCh38; do
     regions_to_overlap="ProblematicRegions:$problematicregions_db"
 
     # Run overlap computation
-    /home/flben/links/projects/rrg-jacquese/flben/Git/CNV-Caller/modules/merge_dataset_CNV/resources/bin/compute_regions_overlap_fraction.sh \
+    /home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Caller/bin/merge_cnv_calls/compute_regions_overlap_fraction.sh \
                  "random_bed_${genome_version}_joined.tsv" "$regions_to_overlap" "overlap_problematic_${genome_version}.tsv"
 
     ################ STEP 5: FINAL FILTER ################

@@ -23,7 +23,7 @@ library(dplyr)
 library(tidyr)
 
 # Load Excel file
-rCNV_df <- read_excel("~/flben/Git/CNV-Annotation/resources/rCNV/docs/recurrent_CNV_dataset.xlsx")
+rCNV_df <- read_excel("/home/flben/Documents/CNV-Annotation/resources/rCNV/docs/recurrent_CNV_dataset.xlsx")
 
 # Assign clean column names
 colnames(rCNV_df) <- rCNV_df[1, ]
@@ -44,7 +44,7 @@ for(genome_version in c("GRCh37","GRCh38")){
   
   
   
-  overlapping_gene <- paste0("~/flben/recurrent_CNV/data/processed/clean/dummy_annotated_filtered_genes_", genome_version, ".tsv")
+  overlapping_gene <- paste0("dummy_annotated_filtered_genes_", genome_version, ".tsv")
   
   gene_set = read.delim(overlapping_gene,header=T)
   gene_set[[paste0("recurrent_ID_", genome_version)]] = paste(gene_set$Chr,gene_set$Start,gene_set$End,sep="_")
@@ -67,7 +67,7 @@ for(genome_version in c("GRCh37","GRCh38")){
 rCNV_df = rCNV_df[!is.na(rCNV_df$geneset_GRCh38) & !is.na(rCNV_df$geneset_GRCh37),]
 
 write.table(rCNV_df,
-            file = "~/flben/recurrent_CNV/data/processed/geneset_per_rCNV.tsv",
+            file = "geneset_per_rCNV.tsv",
             sep = "\t",
             quote = FALSE,
             row.names = FALSE)
