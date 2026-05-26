@@ -45,7 +45,9 @@ def create_table_from_file(table_name, file_path):
         con.execute(f"""
             CREATE TABLE {table_name} AS
             SELECT *
-            FROM read_csv_auto('{file_path}');
+            FROM read_csv_auto('{file_path}',
+                delim='\t',
+                header=true);
         """)
     elif ext in ['.parquet', '.parq']:
         # read Parquet
