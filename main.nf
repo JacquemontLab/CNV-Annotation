@@ -298,6 +298,7 @@ workflow producePDFWorkflowGene {
 
 workflow {
     // Log basic configuration
+    log.info "Dataset: ${params.dataset_name}"
     log.info "Using genome version: ${params.genome_version}"
     log.info "gnomAD AF file: ${gnomad_AF}"
     log.info "gnomAD constraint file: ${gnomad_constraints}"
