@@ -94,7 +94,7 @@ for genome_version in GRCh37 GRCh38; do
 
     ################ STEP 4: REMOVE PROBLEMATIC TRANSCRIPTS ################
     # Load predefined problematic genomic regions and filter transcripts overlapping them by >=50%.
-    regions_file=/home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Caller/resources/Genome_Regions/Genome_Regions_data.tsv
+    regions_file=/home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/resources/Genome_Regions/Genome_Regions_data.tsv
     problematicregions_db=$(mktemp --suffix=.bed)
 
     # Extract problematic regions for this specific genome version
@@ -109,7 +109,7 @@ for genome_version in GRCh37 GRCh38; do
     regions_to_overlap="ProblematicRegions:$problematicregions_db"
 
     # Run overlap computation
-    /home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Caller/bin/merge_cnv_calls/compute_regions_overlap_fraction.sh \
+    /home/flben/links/projects/rrg-jacquese/LAB_WORKSPACE/SOFTWARE/Git_pipeline/CNV-Annotation/bin/compute_regions_overlap_fraction.sh \
                  "random_bed_${genome_version}_joined.tsv" "$regions_to_overlap" "overlap_problematic_${genome_version}.tsv"
 
     ################ STEP 5: FINAL FILTER ################

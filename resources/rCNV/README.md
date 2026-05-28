@@ -1,6 +1,6 @@
 # Recurrent CNV Annotation (geneset_per_rCNV.tsv)
 
-**Date:** 26/08/2025
+**Date:** 28/05/2026
 
 This dataset of Regions of Interest (ROIs) for recurrent CNVs (rCNVs) was created primarily using [Clinical Genome Resource](https://www.clinicalgenome.org/), including all documented recurrent CNVs, with the addition of specific genes of interest. Some regions were manually curated; see the column **Reference** for details.
 
@@ -14,7 +14,7 @@ After VEP annotation, we kept only transcripts and genes meeting the following c
 * **Canonical transcripts** only
 * **Protein-coding genes**
 * **Variants/transcripts overlapping >50%** with the CNV region (OverlapPC > 50)
-* **Transcripts not overlapping problematic regions** as defined by UCSC (overlap <50%)
+* **Transcripts not overlapping problematic regions** as defined by UCSC (ProblematicRegions_Overlap <50%)
 
 
 ### Recurrent CNVs identification
@@ -34,7 +34,7 @@ For a given rCNV, its geneset is constructed based on the protein-coding canonic
 
 #### Supplementary
 
-- /docs/_comparison.xlsx contains rCNV frequency (in percentage) compiled by Cecile Poulain, from different analysis/papers.
+- /docs/frequency_comparison.xlsx contains rCNV frequency (in percentage) compiled by Cecile Poulain, from different analysis/papers.
 * Cécile Poulain’s response to reviewer (labelled: **supp\_cecile\_2025**)
 * Kendall et al., 2019: [PMC6520248, Supplementary Table 2](https://pmc.ncbi.nlm.nih.gov/articles/PMC6520248/#sec4) (labelled: **Kendall et al., 2019**)
 * Crawford et al., 2019: [JMG, Supplementary Table 4](https://jmg.bmj.com/content/56/3/131.long) (labelled: **Crawford et al., 2019**)
