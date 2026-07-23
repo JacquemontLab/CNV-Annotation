@@ -1,6 +1,6 @@
 
 // To launch the test on local :
-// nf-test test tests/main.nf.test --profile test,apptainer
+// nf-test test tests/main.nf.test -profile test,apptainer
 
 
 nextflow_pipeline {

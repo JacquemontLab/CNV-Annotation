@@ -1,6 +1,5 @@
 #!/usr/bin/env nextflow
 
-
 /*
 CNV-Annotation Nextflow Pipeline
 ================================
@@ -28,7 +27,9 @@ nextflow run main.nf --cnvs path/to/cnvs.tsv --regions path/to/regions.bed \
   --genome_version GRCh38 --vep_cache /path/to/vep_cache --outdir results
 */
 
+//Nextflow 26.04 disable strict parsing: export NXF_SYNTAX_PARSER=v1
 nextflow.enable.dsl = 2
+
 
 // Get Git hash at workflow launch
 params.git_hash = "git -C ${projectDir} rev-parse HEAD".execute().text.trim()

@@ -21,7 +21,7 @@ Refer to the template config files and adjust them to match your infrastructure.
 
 Required software:
 
-* **Nextflow** – workflow engine (nextflow version 25.10.2)
+* **Nextflow** – workflow engine (Nextflow version 25.10.2, Nextflow 26.04.6 strict syntax **not-supported**)
 * **Docker** (Apptainer or Singularity) – to run containers
 
 You might need to pull the following containers if working **offline**, or you can try using conda (see `nextflow.config`):
@@ -132,7 +132,8 @@ Also, for downstream analyses, we recommend filtering the final CNV set consider
 |string     | **Allele**              | CNV type. Either __'DEL'__ or __'DUP'__                    |
 |string     | **Gene_ID**             | Ensembl ID of the __gene__ |
 |string     | **Transcript_ID**       | Ensembl ID of the __transcript__ |
-|string[]   | **Consequence**         | String list of Gene disruptions annotated by VEP.   | 
+|string[]   | **Consequence**         | String list of Gene disruptions annotated by VEP.   |
+|string     | **IMPACT**              | VEP IMPACT rating of variant on gene based on **Consequence** |  
 |string     | **BIOTYPE**             | Transcript classification.                 |
 |boolean    | **CANONICAL**           | Transcript level canonical flag.                 |
 |string     | **MANE**                | Matched Annotation from NCBI and EMBL-EBI (MANE) flag. [https://www.ncbi.nlm.nih.gov/refseq/MANE/](https://www.ncbi.nlm.nih.gov/refseq/MANE/). ⚠️ __Only available in GRCh38__ |

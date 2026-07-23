@@ -54,7 +54,7 @@ process VEP_GRCh38 {
     --verbose\
     --assembly GRCh38 \
     --custom file="./${gnomad_sv}",short_name=gnomad,format=VCF,reciprocal=1,overlap_cutoff=70,same_type=1,fields=AF_nfe%AF_afr%AF_amr%AF_fin%AF_sas%AF_eas%AF_asj \
-    --fields "Uploaded_variation,Location,Allele,Gene,Feature,Consequence,BIOTYPE,CANONICAL,MANE,EXON,INTRON,OverlapPC,gnomad_AF_nfe,gnomad_AF_afr,gnomad_AF_amr,gnomad_AF_fin,gnomad_AF_sas,gnomad_AF_eas,gnomad_AF_asj"
+    --fields "Uploaded_variation,Location,Allele,Gene,Feature,Consequence,IMPACT,BIOTYPE,CANONICAL,MANE,EXON,INTRON,OverlapPC,gnomad_AF_nfe,gnomad_AF_afr,gnomad_AF_amr,gnomad_AF_fin,gnomad_AF_sas,gnomad_AF_eas,gnomad_AF_asj"
 
 
     grep -E '^\\s*#' vep_out.tsv > vep_comments.txt
@@ -104,7 +104,7 @@ process VEP_GRCh37 {
     --verbose\
     --assembly GRCh37 \
     --custom file="./${gnomad_sv}",short_name=gnomad,format=VCF,reciprocal=1,overlap_cutoff=70,same_type=1,fields=AFR_AF%AMR_AF%EAS_AF%EUR_AF \
-    --fields "Uploaded_variation,Location,Allele,Gene,Feature,Consequence,BIOTYPE,CANONICAL,MANE,EXON,INTRON,OverlapPC,gnomad_AFR_AF,gnomad_AMR_AF,gnomad_EAS_AF,gnomad_EUR_AF"
+    --fields "Uploaded_variation,Location,Allele,Gene,Feature,Consequence,IMPACT,BIOTYPE,CANONICAL,MANE,EXON,INTRON,OverlapPC,gnomad_AFR_AF,gnomad_AMR_AF,gnomad_EAS_AF,gnomad_EUR_AF"
 
 
     grep -E '^\\s*#' vep_out.tsv > vep_comments.txt
