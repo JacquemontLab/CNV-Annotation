@@ -175,25 +175,24 @@ ggplot(bin_counts, aes(x = "", y = Count, fill = LengthBin)) +
 # 1. Compute CNV counts per sample, type, and size category (single pass)
 boxplot_data <- cnvDB %>%
   mutate(
-    Category = if_else(Length < 50000, 
-                       "Small (< 50kb)", 
-                       "Large (>= 50kb)")
+    Category = factor(
+      if_else(Length < 50000, "Small (< 50kb)", "Large (>= 50kb)"),
+      levels = c("Small (< 50kb)", "Large (>= 50kb)")
+    )
   ) %>%
   group_by(SampleID, Type, Category) %>%
   summarise(count = n(), .groups = "drop") %>%
-  complete(SampleID, Type, Category, fill = list(count = 0)) %>%
-  mutate(
-    Category = factor(Category, levels = c("Small (< 50kb)", "Large (>= 50kb)"))
-  )
+  complete(SampleID, Type, Category, fill = list(count = 0))
 
 # 2. Compute automatic y-axis limits per facet (99th percentile cap)
 auto_limits <- boxplot_data %>%
-  group_by(Category) %>%
+  group_by(Category, .drop = FALSE) %>%          # keep empty factor levels
   summarise(
-    ymax = ceiling(quantile(count, 0.95) * 1.15),  # 99th percentile + 15% headroom
+    ymax = ceiling(quantile(count, 0.95) * 1.15),
     .groups = "drop"
   ) %>%
-  deframe()  # named vector: Category -> ymax
+  mutate(ymax = ifelse(is.na(ymax) | ymax == 0, 1, ymax)) %>%  # avoid NA/0 limits
+  deframe()
 
 # 3. Build named scale list for facetted_pos_scales
 y_scales <- setNames(
