@@ -1,6 +1,6 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------
-# Script: annotate_cnv_sbatch.sh
+# Script: nextflow-run.sh
 #
 # Description:
 #   The input TSV must contain at least:
@@ -12,14 +12,14 @@
 #   Any additional columns are preserved.
 #
 # Usage:
-#   annotate_cnv_sbatch.sh \
+#   nextflow-run.sh \
 #     -i <CNV_TSV_FILE> \
 #     -g <GENOME_VERSION> \
 #     -c <DATASET_NAME> \
 #     -d <GIT_DIR>
 #
 # Example:
-#   sbatch annotate_cnv_sbatch.sh \
+#   sbatch nextflow-run.sh \
 #     -i input_cnvs.tsv \
 #     -g GRCh38 \
 #     -c AllOfUs_tierv8_Array_GRCh38_Annotation \

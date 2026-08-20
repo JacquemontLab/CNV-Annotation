@@ -9,7 +9,9 @@
 #               (the vep cache and gnomad files) into the resources folder. Otherwise the location can be specified uing the -r flag.
 #
 # Options:
-#   -r <path> : Path to the resource directory (default: ./resources/vep_cache)
+#   -r <path>   : Path to the resource directory (default: ./resources/vep_cache)
+#   -g <genome> : Genome assembly for VEP cache — GRCh38 or GRCh37 (required)
+#   -h          : Show this help message
 #
 # Requirements:
 #   - curl
