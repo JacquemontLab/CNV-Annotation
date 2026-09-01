@@ -30,6 +30,7 @@ df = pl.scan_csv(
     cnv_file,
     separator="\t",
     infer_schema_length=1000000,
+    null_values=["."],                       # VCF missing marker → null
     schema_overrides={"SampleID": pl.Utf8}  # Ensure SampleID stays string
 )
 
