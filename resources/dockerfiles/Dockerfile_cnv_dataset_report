@@ -60,7 +60,12 @@ RUN micromamba install -y -n base -c conda-forge \
         r-ggh4x \
         r-tidyverse && \
     micromamba clean --all --yes
-    
+
+# bedtools (bioconda; conda-forge listed first for dependency priority)
+RUN micromamba install -y -n base -c conda-forge -c bioconda \
+        bedtools && \
+    micromamba clean --all --yes
+
 # Set environment variables
 ENV PATH=/opt/conda/bin:$PATH
 ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
