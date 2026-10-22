@@ -33,13 +33,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Build ensembl_113
+      - name: Build cnv_dataset_report
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./resources/dockerfiles/Dockerfile_ensembl_113
+          file: ./resources/dockerfiles/Dockerfile_cnv_dataset_report
           push: true
-          tags: ghcr.io/jacquemontlab/ensembl_113:latest
+          tags: ghcr.io/jacquemontlab/cnv_dataset_report:latest
       
       - name: Build tabix
         uses: docker/build-push-action@v6
@@ -56,13 +56,13 @@ jobs:
           file: ./resources/dockerfiles/Dockerfile_python_packages
           push: true
           tags: ghcr.io/jacquemontlab/python_packages:latest
-      
-      - name: Build python_packages
+          
+      - name: Build ensembl_113
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./resources/dockerfiles/Dockerfile_cnv_dataset_report
+          file: ./resources/dockerfiles/Dockerfile_ensembl_113
           push: true
-          tags: ghcr.io/jacquemontlab/cnv_dataset_report:latest
+          tags: ghcr.io/jacquemontlab/ensembl_113:latest
 
 
