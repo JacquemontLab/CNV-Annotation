@@ -340,8 +340,8 @@ if (!file.exists(sampleDB_path)) {
               
               number_trio <- n_distinct(cnvDB_trio$SampleID) 
 
-              if (number_trio == 0) {
-                message("Mendelian precision analysis skipped: no child CNVs with trio information found.")
+              if (number_trio <= 10) {
+                message("Mendelian precision analysis skipped: no child CNVs with trio information found or less than 10")
               } else {
               mendelian_precision <- TRUE
       }
