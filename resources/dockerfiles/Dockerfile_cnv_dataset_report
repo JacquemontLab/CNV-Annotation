@@ -48,8 +48,7 @@ RUN micromamba install -y -n base -c conda-forge \
 # Python + polars (installed into the same base env as R)
 RUN micromamba install -y -n base -c conda-forge \
         python=3.12 \
-        polars \
-        pyarrow && \
+        polars && \
     micromamba clean --all --yes
 
 RUN micromamba install -y -n base -c conda-forge \
