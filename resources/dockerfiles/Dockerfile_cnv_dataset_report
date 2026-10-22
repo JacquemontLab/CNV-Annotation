@@ -45,6 +45,13 @@ RUN micromamba install -y -n base -c conda-forge \
         r-tinytex && \
     micromamba clean --all --yes
 
+# Python + polars (installed into the same base env as R)
+RUN micromamba install -y -n base -c conda-forge \
+        python=3.12 \
+        polars \
+        pyarrow && \
+    micromamba clean --all --yes
+
 RUN micromamba install -y -n base -c conda-forge \
         r-arrow \
         r-duckdb \
