@@ -209,12 +209,18 @@ print("Formatting intersections and combining results...")
 
 # ------------------- Annotate Child CNVs with Overlaps -------------------
 for ovlap in OVERLAPS:
-        intersects = pl.scan_csv(f"intersect_ovlap{ovlap}.bed", separator = "\t", has_header = False,infer_schema_length=1000000)
-        
+        intersects = pl.scan_csv(
+            f"intersect_ovlap{ovlap}.bed",
+            separator="\t",
+            has_header=False,
+            new_columns=["SampleID", "Start", "End"],
+            schema_overrides={"SampleID": pl.Utf8, "Start": pl.Int64, "End": pl.Int64},
+        )
+
         # Build ID column for matching
         intersects = intersects.with_columns(
-         (pl.col("column_1") + "_" + pl.col("column_2").cast(pl.Utf8) + "_" + pl.col("column_3").cast(pl.Utf8) ).alias("ID")
-          )
+            (pl.col("SampleID") + "_" + pl.col("Start").cast(pl.Utf8) + "_" + pl.col("End").cast(pl.Utf8)).alias("ID")
+        )
           
     # Join with child CNVs and mark True/False
         df_child = df_child.join(
