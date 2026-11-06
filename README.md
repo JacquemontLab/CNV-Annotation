@@ -129,7 +129,7 @@ Also, for downstream analyses, we recommend filtering the final CNV set consider
 | --------- | -----------| -------------------------------------------------- |
 |string     | **CNV_ID**              | ID of the CNV in the format of 'Chr_Start_End_Type'|
 |string     | **Location**            | Location ID from VEP.                               |
-|string     | **Allele**              | CNV type. Either __'DEL'__ or __'DUP'__                    |
+|string     | **Type**                | CNV type. Either __'DEL'__ or __'DUP'__                    |
 |string     | **Gene_ID**             | Ensembl ID of the __gene__ |
 |string     | **Transcript_ID**       | Ensembl ID of the __transcript__ |
 |string[]   | **Consequence**         | String list of Gene disruptions annotated by VEP.   |

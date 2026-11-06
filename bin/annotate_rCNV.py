@@ -71,7 +71,7 @@ def main(args):
     # 2. Explode geneDB
     con.execute("""
     CREATE TABLE geneDB_exploded AS
-    SELECT CNV_ID, Gene_ID, Allele AS Type
+    SELECT CNV_ID, Gene_ID, Type
     FROM geneDB
     WHERE Exon_Overlap > 0
       AND CANONICAL = 'true';

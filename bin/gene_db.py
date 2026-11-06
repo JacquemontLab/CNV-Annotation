@@ -257,11 +257,11 @@ def make_CNV_ID(df):
     df = df.with_columns(
     # Extract first three letters
         pl.col("Allele").str.slice(0,3).str.to_uppercase()
-        .alias("Allele")
-    )
+        .alias("Type")
+    ).drop("Allele")
     # Concat location and CNV type into one column
     df = df.with_columns(
-        (pl.col("Location")  + "_" +  pl.col("Allele"))
+        (pl.col("Location")  + "_" +  pl.col("Type"))
         .alias("CNV_ID")
     )
     # Replace new coord delimiter
