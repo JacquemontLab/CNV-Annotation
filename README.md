@@ -119,7 +119,9 @@ Also, for downstream analyses, we recommend filtering the final CNV set consider
 |float      | **ProblematicRegions_Overlap**  | Percentage base-pair overlap between CNV and problematic regions (Segmental Duplications, Major Histocompatibility Complex, Centromeres, Telomeres, and UCSC Problematic Regions), for more details see section 'Problematic Regions'.         |
 |int        | **sum_inv_LOEUF**          | Sum of the 1/LOEUF values of canonical transcripts whose exons are overlapped by the CNV. |	
 |float      | **Gnomad_Max_AF**          | Maximum allele frequency of matching structural variant across populations. See section 'Gnomad_Max_AF'. |  
-|string     | **rCNV_ID**                | Corresponding recurrent CNV flagged, for more details see section 'Recurrent CNVs identification'. |	
+|string     | **rCNV_ID**                | Corresponding recurrent CNV flagged (e.g. `22q11.21_del`), for more details see section 'Recurrent CNVs identification'. |	
+|string     | **rCNV_ID_method**         | Method that assigned **rCNV_ID**: `'region'` or `'geneset'` (the geneset method has priority). NULL if no rCNV. |	
+|boolean    | **rCNV_forged**            | `true` if the row is a forged CNV (merged from fragmented CNVs of the same sample covering an rCNV region), `false` for the original input CNVs. See section 'Recurrent CNVs identification'. |	
 
 
 
@@ -153,6 +155,7 @@ Also, for downstream analyses, we recommend filtering the final CNV set consider
 
 * The **CNV\_ID** links the `cnvDB` and `geneDB` tables.
 * `cnvDB` contains all CNVs, including duplicates across samples.
+* `cnvDB` also contains **forged CNVs** (`rCNV_forged = true`), added on top of the original CNVs they were built from (which are kept unchanged). Filter on `rCNV_forged` depending on the analysis (e.g. `rCNV_forged = false` to get the CNVs as called).
 * `geneDB` contains deduplicated CNVs prior to running VEP. Any duplicates in this table arise only when a CNV affects multiple gene or transcript, but only **MANE or CANONICAL transcripts** are retained to reduce the database size.
 * Intergenic CNVs are either NULL in `Gene_ID` or assigned to the nearest gene within 5kb of a start/stop codon, with a consequence flag: `'upstream_gene_variant'` or `'downstream_gene_variant'` (see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)).
 
@@ -173,8 +176,27 @@ For details, please refer to the file `CNV-Annotation/resources/Genome_Regions/R
 
 ### Recurrent CNVs identification
 
-A CNV is flagged has recurrent if it overlaps all the genes in the geneset of a given rCNV_ID (considering only canonical transcripts of protein-coding genes) from `resources/rCNV/geneset_per_rCNV.tsv` .
+Recurrent CNVs (rCNVs) are defined in `resources/rCNV/geneset_per_rCNV.tsv` and identified with two complementary methods. The `rCNV_ID` is suffixed with the CNV type (`_del` or `_dup`), and `rCNV_ID_method` records which method assigned it.
+
+#### 1. Region method (`rCNV_ID_method = 'region'`), with CNV forging
+
+Run first, on the input CNV file (`bin/forge_rCNV.py`), so that forged CNVs are then annotated like any other CNV. It uses only the large recurrent regions (`Locus_Group = 'Reccurent_CNV'`) and the coordinates of the selected genome version.
+
+For each **SampleID x Type x rCNV region**:
+
+1. **Coverage** = length of the union of the sample's CNVs (same Type) within the region, divided by the region length. Overlapping or duplicated CNVs are counted once.
+2. The region **passes** if coverage >= 70%.
+3. If several passing regions **overlap each other**, only the **largest** region is kept (ties: alphabetical `rCNV_ID`).
+4. For each kept region:
+   * If **one CNV alone** covers >= 70% of the region: this CNV is annotated (`rCNV_forged = false`). If it passes several separate regions, the largest one is kept.
+   * Otherwise a **forged CNV** is added (`rCNV_forged = true`): `Start` = min Start and `End` = max End of all the sample's CNVs (same Type) overlapping the region; all other columns are copied from the largest of these CNVs. The original CNVs are kept unchanged, without `rCNV_ID`.
+
+#### 2. Geneset method (`rCNV_ID_method = 'geneset'`)
+
+A CNV is flagged as recurrent if it overlaps all the genes in the geneset of a given rCNV_ID (considering only canonical transcripts of protein-coding genes), for all rCNVs of the file (including single-gene regions).
 For a given rCNV, its geneset is constructed based on the protein-coding canonical transcripts that it overlaps at 50% (see `resources/rCNV/README.md` for details). If more than one rCNV_ID is identified for a given CNV, then only the one with the largest geneset is kept.
+
+**The geneset method has priority**: when it finds an rCNV for a CNV, it overwrites the `rCNV_ID` from the region method and sets `rCNV_ID_method = 'geneset'`.
 
 ### Consequences
 

@@ -61,7 +61,7 @@ switch (params.genome_version) {
 // Include external modules for VEP annotation and LOEUF report generation
 include { VEP_ANNOTATE } from './modules/vep_annotate'
 include { sum_loeuf_gnomAD_cnv } from './modules/CNV_LOEUF_gnomAD'
-include { RCNV_ANNOTATION } from './modules/rCNV_annotation'
+include { RCNV_ANNOTATION; forge_rCNV } from './modules/rCNV_annotation'
 
 
 // It extracts unique CNV coordinates to reduce redundant queries
@@ -135,10 +135,14 @@ process buildCnvDB {
         TO 'cnvDB_tmp.parquet' (FORMAT PARQUET);
     "
 
-    # Step 3: Merge with rCNV database on CNV_ID
+    # Step 3: Merge with geneset-based rCNV annotation on CNV_ID
+    # A geneset match overwrites the region-based rCNV_ID (from forge_rCNV) and sets rCNV_ID_method = 'geneset'
     duckdb -c "
         COPY (
-        SELECT r.*, c.rCNV_ID
+        SELECT r.* REPLACE (
+            COALESCE(c.rCNV_ID, r.rCNV_ID) AS rCNV_ID,
+            CASE WHEN c.rCNV_ID IS NOT NULL THEN 'geneset' ELSE r.rCNV_ID_method END AS rCNV_ID_method
+        )
         FROM read_parquet('cnvDB_tmp.parquet') AS r
         LEFT JOIN read_parquet('${cnvDB_rCNV}') AS c
         USING (CNV_ID)
@@ -306,7 +310,11 @@ workflow {
 
     main:    
         // Load the input CNV file(s) into a Nextflow channel
-        cnvs_ch = Channel.fromPath(file(params.cnvs))
+        raw_cnvs_ch = Channel.fromPath(file(params.cnvs))
+
+        // Step 0: Region-based rCNV annotation, forging fragmented CNVs covering rCNV regions
+        // The forged CNVs are added to the dataset and annotated like any other CNV downstream
+        cnvs_ch = forge_rCNV(raw_cnvs_ch, params.recurrent_path, params.genome_version)
 
         // Step 1: Identify unique CNVs to reduce redundancy before annotation
         uniq_cnv_ch = identifyUniqCNV(cnvs_ch)
