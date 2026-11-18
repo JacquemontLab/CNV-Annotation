@@ -23,7 +23,7 @@ Two methods are used (see section 'Recurrent CNVs identification' of the main RE
 
 * **Region method** (`bin/forge_rCNV.py`, run first): for the large recurrent regions only (`Locus_Group = 'Reccurent_CNV'`), an rCNV is flagged when the union of a sample's CNVs of the same Type covers >= 70% of the region coordinates (`GRCh37` / `GRCh38` columns). If no single CNV reaches 70% alone, a forged CNV (min Start, max End) is added.
 * **Geneset method** (`bin/annotate_rCNV.py`, has priority): a CNV is flagged has recurrent if it overlaps all the genes in the geneset of a given rCNV_ID (considering only canonical transcripts of protein-coding genes) from resources/rCNV/geneset_per_rCNV.tsv .
-For a given rCNV, its geneset is constructed based on the protein-coding canonical transcripts that it overlaps at 50% (see resources/rCNV/README.md for details). If more than one rCNV_ID is identified for a given CNV, then only the one with the largest geneset is kept.
+For a given rCNV, its geneset is constructed based on the protein-coding canonical transcripts that it overlaps at 50% (see resources/rCNV/README.md for details). If more than one rCNV_ID is identified for a given CNV, then only the one with the largest geneset is kept (ties: alphabetical `rCNV_ID`).
 
 Note: the `Locus_Group` value is spelled `Reccurent_CNV` in the file and the region method filters on this exact spelling. Some coordinates contain stray spaces (e.g. `X: 48447780-52444264`, `4:337779 -2009235`); they are removed when parsed.
 

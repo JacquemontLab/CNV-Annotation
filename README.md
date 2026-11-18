@@ -194,7 +194,7 @@ For each **SampleID x Type x rCNV region**:
 #### 2. Geneset method (`rCNV_ID_method = 'geneset'`)
 
 A CNV is flagged as recurrent if it overlaps all the genes in the geneset of a given rCNV_ID (considering only canonical transcripts of protein-coding genes), for all rCNVs of the file (including single-gene regions).
-For a given rCNV, its geneset is constructed based on the protein-coding canonical transcripts that it overlaps at 50% (see `resources/rCNV/README.md` for details). If more than one rCNV_ID is identified for a given CNV, then only the one with the largest geneset is kept.
+For a given rCNV, its geneset is constructed based on the protein-coding canonical transcripts that it overlaps at 50% (see `resources/rCNV/README.md` for details). If more than one rCNV_ID is identified for a given CNV, then only the one with the largest geneset is kept (ties: alphabetical `rCNV_ID`).
 
 **The geneset method has priority**: when it finds an rCNV for a CNV, it overwrites the `rCNV_ID` from the region method and sets `rCNV_ID_method = 'geneset'`.
 

@@ -144,7 +144,7 @@ def main(args):
             r.total_genes AS recurrent_total_genes,
             ROW_NUMBER() OVER (
                 PARTITION BY m.CNV_ID
-                ORDER BY m.matched_genes DESC
+                ORDER BY m.matched_genes DESC, m.rCNV_ID  -- tie: alphabetical rCNV_ID (deterministic)
             ) AS rn
         FROM matching_counts m
         JOIN recurrent_counts r
